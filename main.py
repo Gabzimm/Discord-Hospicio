@@ -55,6 +55,7 @@ async def load_cogs():
     # Lista dos SEUS módulos
     cogs = [
         'modules.tickets',
+        'modules.autorole',
     ]
     
     for cog in cogs:
