@@ -38,7 +38,6 @@ class TicketFinalizadoView(ui.View):
         
         await self.ticket_channel.send(embed=embed)
         
-       
     
     @ui.button(label="🔄 Reabrir Ticket", style=ButtonStyle.blurple, custom_id="reabrir_ticket")
     async def reabrir_ticket(self, interaction: discord.Interaction, button: ui.Button):
@@ -63,74 +62,108 @@ class TicketFinalizadoView(ui.View):
             novo_nome = f"🎫-{self.ticket_channel.name[2:]}"
             await self.ticket_channel.edit(name=novo_nome)
         
-        # Embed de reabertura
-        embed = discord.Embed(
+        # Criar NOVO PAINEL com botões "Deletar" e "Fechar"
+        embed_reaberto = discord.Embed(
             title="🔄 Ticket Reaberto",
-            description=f"Ticket reaberto por {interaction.user.mention}",
+            description=f"Ticket reaberto por {interaction.user.mention}\n\n**Painel de Controle:**",
             color=discord.Color.blue()
         )
         
-        # Remover botões
+        # View com botões Deletar e Fechar
+        reaberto_view = TicketReabertoView(self.ticket_owner_id, self.ticket_channel)
+        
+        # Remover botões antigos
         self.clear_items()
         await interaction.message.edit(view=self)
         
-        await self.ticket_channel.send(embed=embed)
-        
-       
+        await self.ticket_channel.send(embed=embed_reaberto, view=reaberto_view)
 
-class TicketStaffView(ui.View):
-    """View com TODOS os botões para staff - Fechar, Deletar e Assumir lado a lado"""
+class TicketReabertoView(ui.View):
+    """View quando ticket é reaberto - com Deletar e Fechar"""
     def __init__(self, ticket_owner_id, ticket_channel):
         super().__init__(timeout=None)
         self.ticket_owner_id = ticket_owner_id
         self.ticket_channel = ticket_channel
     
-    @ui.button(label="✅ Assumir Ticket", style=ButtonStyle.green, emoji="👋", custom_id="assumir_ticket", row=0)
-    async def assumir_ticket(self, interaction: discord.Interaction, button: ui.Button):
-        # APENAS STAFF pode assumir
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
-            await interaction.response.send_message("❌ Apenas staff pode assumir tickets!", ephemeral=True)
+    @ui.button(label="🔒 Fechar Ticket", style=ButtonStyle.gray, emoji="🔒", custom_id="close_ticket_reaberto", row=0)
+    async def close_ticket_reaberto(self, interaction: discord.Interaction, button: ui.Button):
+        # QUALQUER PESSOA pode fechar (quem abriu ou staff)
+        if interaction.user.id != self.ticket_owner_id and not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("❌ Apenas quem abriu ou ADMs podem fechar!", ephemeral=True)
             return
         
         await interaction.response.defer()
         
-        # Adicionar staff ao ticket
-        overwrite = discord.PermissionOverwrite(
-            read_messages=True,
-            send_messages=True,
-            attach_files=True
-        )
-        await self.ticket_channel.set_permissions(interaction.user, overwrite=overwrite)
+        # Fechar canal
+        overwrites = self.ticket_channel.overwrites
+        for target, overwrite in overwrites.items():
+            if isinstance(target, discord.Role) and target.name == "@everyone":
+                overwrite.send_messages = False
         
-        # Mudar nome do canal para mostrar quem está atendendo
-        novo_nome = f"🎫-{self.ticket_channel.name[2:]}+{interaction.user.name[:5]}"
-        await self.ticket_channel.edit(name=novo_nome)
+        await self.ticket_channel.edit(overwrites=overwrites)
+        await self.ticket_channel.edit(name=f"🔒-{self.ticket_channel.name[2:]}")
         
-        # Embed de confirmação
-        embed = discord.Embed(
-            title="👑 Ticket Assumido",
-            description=f"**{interaction.user.mention}** assumiu este ticket!",
-            color=discord.Color.gold()
-        )
-        embed.set_footer(text=f"Staff responsável: {interaction.user.name}")
-        
-        # Remover botão "Assumir" (já foi assumido)
-        for child in self.children:
-            if child.custom_id == "assumir_ticket":
-                self.remove_item(child)
-                break
-        
+        # Remover botões
+        self.clear_items()
         await interaction.message.edit(view=self)
         
+        # Criar painel de ticket fechado
+        try:
+            user = await interaction.client.fetch_user(self.ticket_owner_id)
+            user_info = f"{user.mention}\nID: `{user.id}`"
+        except:
+            user_info = f"ID: `{self.ticket_owner_id}`"
+        
+        embed_fechado = discord.Embed(
+            title="📋 Ticket Fechado",
+            description=(
+                f"**👤 Usuário:** {user_info}\n"
+                f"**👑 Fechado por:** {interaction.user.mention}\n"
+                f"**📅 Data/Hora:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                "**Painel de Controle (apenas staff):**"
+            ),
+            color=discord.Color.orange()
+        )
+        
+        finalizado_view = TicketFinalizadoView(self.ticket_owner_id, self.ticket_channel)
+        await self.ticket_channel.send(embed=embed_fechado, view=finalizado_view)
+    
+    @ui.button(label="🗑️ Deletar Ticket", style=ButtonStyle.red, emoji="🗑️", custom_id="delete_ticket_reaberto", row=0)
+    async def delete_ticket_reaberto(self, interaction: discord.Interaction, button: ui.Button):
+        # APENAS STAFF pode deletar
+        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
+        if not any(role.name in staff_roles for role in interaction.user.roles):
+            await interaction.response.send_message("❌ Apenas staff pode deletar tickets!", ephemeral=True)
+            return
+        
+        await interaction.response.defer()
+        
+        # Confirmar deleção
+        embed = discord.Embed(
+            title="🗑️ Ticket Deletado",
+            description=f"Ticket deletado por {interaction.user.mention}",
+            color=discord.Color.red()
+        )
+        
         await self.ticket_channel.send(embed=embed)
+        
+        # Esperar 3 segundos e deletar
+        await asyncio.sleep(3)
+        await self.ticket_channel.delete()
         
         # DM para o usuário
         try:
             user = await interaction.client.fetch_user(self.ticket_owner_id)
-            await user.send(f"👋 **{interaction.user.name}** assumiu seu ticket!")
+            await user.send("🗑️ Seu ticket foi deletado pela equipe de suporte.")
         except:
             pass
+
+class TicketStaffView(ui.View):
+    """View inicial do ticket aberto - com Deletar e Fechar"""
+    def __init__(self, ticket_owner_id, ticket_channel):
+        super().__init__(timeout=None)
+        self.ticket_owner_id = ticket_owner_id
+        self.ticket_channel = ticket_channel
     
     @ui.button(label="🔒 Fechar Ticket", style=ButtonStyle.gray, emoji="🔒", custom_id="close_ticket_staff", row=0)
     async def close_ticket_staff(self, interaction: discord.Interaction, button: ui.Button):
@@ -154,15 +187,13 @@ class TicketStaffView(ui.View):
         self.clear_items()
         await interaction.message.edit(view=self)
         
-        # CRIAR NOVO PAINEL DE TICKET FECHADO (APENAS STAFF VÊ)
-        # Buscar informações do usuário
+        # CRIAR NOVO PAINEL DE TICKET FECHADO
         try:
             user = await interaction.client.fetch_user(self.ticket_owner_id)
             user_info = f"{user.mention}\nID: `{user.id}`"
         except:
             user_info = f"ID: `{self.ticket_owner_id}`"
         
-        # Embed do ticket fechado
         embed_fechado = discord.Embed(
             title="📋 Ticket Fechado",
             description=(
@@ -174,12 +205,9 @@ class TicketStaffView(ui.View):
             color=discord.Color.orange()
         )
         
-        # View com botões de finalizar/reabrir (APENAS STAFF VÊ)
         finalizado_view = TicketFinalizadoView(self.ticket_owner_id, self.ticket_channel)
-        
         await self.ticket_channel.send(embed=embed_fechado, view=finalizado_view)
-        
-        
+    
     
     @ui.button(label="🗑️ Deletar Ticket", style=ButtonStyle.red, emoji="🗑️", custom_id="delete_ticket_staff", row=0)
     async def delete_ticket_staff(self, interaction: discord.Interaction, button: ui.Button):
@@ -289,12 +317,12 @@ class TicketOpenView(ui.View):
                     f"**ID:** `{interaction.user.id}`\n"
                     f"**Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
                     "**📝 Descreva seu problema ou dúvida:**\n"
-                    "Aguarde um membro da staff assumir seu ticket."
+                    "**Painel de Controle:**"
                 ),
                 color=discord.Color.purple()
             )
             
-            # View com TODOS os botões para staff
+            # View com botões Deletar e Fechar
             staff_view = TicketStaffView(interaction.user.id, ticket_channel)
             
             await ticket_channel.send(
@@ -347,7 +375,7 @@ class TicketsCog(commands.Cog):
             color=discord.Color.purple()
         )
         
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1460761801515073650/1461317989226905757/ChatGPT_Image_13_de_jan._de_2026_20_15_27.png?ex=696a1dee&is=6968cc6e&hm=b46671d72c8ed1fb28625f4603e62930207782b9f186c9859dd926ffe157eb93")
+        embed.set_image(url="https://cdn.discordapp.com/attachments/1460761801515073650/1461317989226905757/ChatGPT_Image_13_de_jan._de_2026_20_15_27.png")
         embed.set_footer(text="Atenção: Não abuse do sistema")
         
         view = TicketOpenView()
