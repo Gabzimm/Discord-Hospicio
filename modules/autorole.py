@@ -6,152 +6,123 @@ class AutoRole(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.target_role_name = "𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨"
+        print(f"🛬 AutoRole iniciado | Cargo alvo: {self.target_role_name}")
     
     @commands.Cog.listener()
     async def on_member_join(self, member):
         """Quando um membro entra no servidor"""
-        print(f"👤 {member.name} entrou no servidor")
+        print(f"🎯 EVENTO DISPARADO: {member.name} entrou no servidor {member.guild.name}")
         
         try:
             # Buscar o cargo
             role = discord.utils.get(member.guild.roles, name=self.target_role_name)
             
-            if role:
-                # Dar o cargo
-                await member.add_roles(role)
-                print(f"✅ Cargo '{self.target_role_name}' dado para {member.name}")
+            if not role:
+                print(f"❌ CARGO NÃO ENCONTRADO: '{self.target_role_name}'")
+                return
+            
+            print(f"✅ Cargo encontrado: {role.name} (ID: {role.id})")
+            
+            # Verificar permissões do bot
+            bot_member = member.guild.get_member(self.bot.user.id)
+            if not bot_member.guild_permissions.manage_roles:
+                print("❌ Bot SEM permissão 'manage_roles'")
+                return
+            
+            # Verificar hierarquia
+            bot_top_role = bot_member.top_role
+            if bot_top_role.position <= role.position:
+                print(f"❌ Hierarquia inválida: Bot role ({bot_top_role.position}) ≤ Target role ({role.position})")
+                return
+            
+            # Dar o cargo (com timeout)
+            try:
+                await member.add_roles(role, reason="Auto-role: entrada no servidor")
+                print(f"✅ SUCESSO: Cargo dado para {member.name}")
                 
-                # Opcional: Enviar mensagem de boas-vindas
-                try:
+                # Log no canal de logs se existir
+                log_channel = discord.utils.get(member.guild.text_channels, name="logs")
+                if log_channel:
                     embed = discord.Embed(
-                        title=f"👋 Bem-vindo(a) ao {member.guild.name}!",
-                        description=(
-                            f"Olá {member.mention}! 🎉\n"
-                            f"Você recebeu automaticamente o cargo **{self.target_role_name}**!\n\n"
-                            "**📌 Informações importantes:**\n"
-                            "• Leia as regras em <#canal-das-regras>\n"
-                            "• Conheça nossos canais\n"
-                            "• Divirta-se!"
-                        ),
+                        title="🛬 Novo Membro",
+                        description=f"{member.mention} entrou no servidor",
                         color=discord.Color.green()
                     )
-                    embed.set_thumbnail(url=member.guild.icon.url if member.guild.icon else None)
+                    embed.add_field(name="Cargo dado", value=role.mention)
+                    embed.set_footer(text=f"ID: {member.id}")
+                    await log_channel.send(embed=embed)
                     
-                    # Tentar enviar DM
-                    await member.send(embed=embed)
-                except:
-                    # Se não conseguir DM, enviar no canal de boas-vindas
-                    welcome_channel = discord.utils.get(member.guild.text_channels, name="boas-vindas")
-                    if welcome_channel:
-                        await welcome_channel.send(f"{member.mention}", embed=embed)
-                        
-            else:
-                print(f"❌ Cargo '{self.target_role_name}' não encontrado!")
+            except discord.Forbidden:
+                print("❌ FORBIDDEN: Sem permissão para dar cargo")
+            except Exception as e:
+                print(f"❌ ERRO ao dar cargo: {type(e).__name__}: {e}")
                 
         except Exception as e:
-            print(f"❌ Erro ao dar cargo: {e}")
+            print(f"❌ ERRO GERAL em on_member_join: {type(e).__name__}: {e}")
     
     @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def setup_autorole(self, ctx):
-        """Configura o sistema de auto-role"""
+    async def test_autorole(self, ctx, member: discord.Member = None):
+        """Testa manualmente o autorole"""
+        if member is None:
+            member = ctx.author
+        
+        # Simular o evento
+        await self.on_member_join(member)
+        await ctx.send(f"✅ Teste realizado para {member.mention}")
+    
+    @commands.command()
+    async def autorole_status(self, ctx):
+        """Mostra status completo do autorole"""
         embed = discord.Embed(
-            title="🛬 Auto-Role Configurado",
-            description=(
-                f"✅ Sistema de auto-role ativado!\n\n"
-                f"**Cargo atribuído automaticamente:** `{self.target_role_name}`\n"
-                f"**Status:** 🟢 Ativo\n\n"
-                f"*Novos membros receberão este cargo ao entrar.*"
-            ),
+            title="🛬 Status do Auto-Role",
             color=discord.Color.blue()
         )
         
-        # Verificar se o cargo existe
+        # 1. Verificar cargo
         role = discord.utils.get(ctx.guild.roles, name=self.target_role_name)
-        if not role:
-            embed.add_field(
-                name="⚠️ Atenção",
-                value=f"Cargo `{self.target_role_name}` não encontrado!\nCrie o cargo para o sistema funcionar.",
-                inline=False
-            )
-        
-        await ctx.send(embed=embed)
-    
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def check_autorole(self, ctx):
-        """Verifica configuração do auto-role"""
-        role = discord.utils.get(ctx.guild.roles, name=self.target_role_name)
-        
-        embed = discord.Embed(
-            title="🔍 Status do Auto-Role",
-            color=discord.Color.gold()
-        )
-        
         if role:
-            embed.description = f"✅ Cargo `{self.target_role_name}` encontrado!"
-            embed.add_field(name="🆔 ID", value=f"`{role.id}`", inline=True)
-            embed.add_field(name="🎨 Cor", value=str(role.color), inline=True)
-            embed.add_field(name="👥 Membros", value=len(role.members), inline=True)
-            embed.set_footer(text="Sistema funcionando corretamente!")
+            embed.add_field(name="✅ Cargo", value=f"`{role.name}` (ID: {role.id})", inline=False)
         else:
-            embed.description = f"❌ Cargo `{self.target_role_name}` NÃO encontrado!"
-            embed.add_field(
-                name="📝 Solução",
-                value="1. Crie o cargo manualmente\n2. Certifique-se do nome exato\n3. O bot precisa ter permissão para dar cargos",
-                inline=False
-            )
+            embed.add_field(name="❌ Cargo", value=f"Não encontrado: `{self.target_role_name}`", inline=False)
+        
+        # 2. Verificar permissões do bot
+        bot_member = ctx.guild.get_member(self.bot.user.id)
+        perms = bot_member.guild_permissions
+        
+        if perms.manage_roles:
+            embed.add_field(name="✅ Permissão", value="`manage_roles` = SIM", inline=True)
+        else:
+            embed.add_field(name="❌ Permissão", value="`manage_roles` = NÃO", inline=True)
+        
+        # 3. Verificar hierarquia
+        if role and perms.manage_roles:
+            bot_top_role = bot_member.top_role
+            if bot_top_role.position > role.position:
+                embed.add_field(name="✅ Hierarquia", value=f"Bot ({bot_top_role.position}) > Cargo ({role.position})", inline=True)
+            else:
+                embed.add_field(name="❌ Hierarquia", value=f"Bot ({bot_top_role.position}) ≤ Cargo ({role.position})", inline=True)
+        
+        # 4. Verificar intents
+        embed.add_field(name="🎯 Intents", value=f"members={self.bot.intents.members}", inline=True)
         
         await ctx.send(embed=embed)
     
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def give_all_autorole(self, ctx):
-        """Dá o cargo para TODOS os membros atuais"""
+    async def give_autorole(self, ctx, member: discord.Member):
+        """Dá o cargo manualmente"""
         role = discord.utils.get(ctx.guild.roles, name=self.target_role_name)
         
         if not role:
             await ctx.send(f"❌ Cargo `{self.target_role_name}` não encontrado!")
             return
         
-        members_without_role = [m for m in ctx.guild.members if role not in m.roles]
-        
-        if not members_without_role:
-            await ctx.send("✅ Todos os membros já têm este cargo!")
-            return
-        
-        embed = discord.Embed(
-            title="🔄 Atribuindo cargo a todos",
-            description=f"Dando `{self.target_role_name}` para {len(members_without_role)} membro(s)...",
-            color=discord.Color.orange()
-        )
-        
-        msg = await ctx.send(embed=embed)
-        
-        success = 0
-        failed = 0
-        
-        for member in members_without_role:
-            try:
-                await member.add_roles(role)
-                success += 1
-            except:
-                failed += 1
-            await asyncio.sleep(0.5)  # Evitar rate limit
-        
-        embed = discord.Embed(
-            title="✅ Concluído!",
-            description=(
-                f"**Cargo:** `{self.target_role_name}`\n"
-                f"**✅ Sucesso:** {success} membro(s)\n"
-                f"**❌ Falhas:** {failed} membro(s)\n"
-                f"**Total processado:** {len(members_without_role)}"
-            ),
-            color=discord.Color.green()
-        )
-        
-        await msg.edit(embed=embed)
+        try:
+            await member.add_roles(role)
+            await ctx.send(f"✅ Cargo `{role.name}` dado para {member.mention}!")
+        except Exception as e:
+            await ctx.send(f"❌ Erro: `{type(e).__name__}: {e}`")
 
 async def setup(bot):
     await bot.add_cog(AutoRole(bot))
-    print("✅ Módulo Auto-Role carregado!")
+    print("✅ Módulo Auto-Role carregado com diagnóstico!")
