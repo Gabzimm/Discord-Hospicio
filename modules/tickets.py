@@ -62,10 +62,10 @@ class TicketFinalizadoView(ui.View):
             novo_nome = f"🎫-{self.ticket_channel.name[2:]}"
             await self.ticket_channel.edit(name=novo_nome)
         
-        # Criar NOVO PAINEL com botões "Deletar" e "Fechar"
+        # Embed de reabertura + botões ABAIXO
         embed_reaberto = discord.Embed(
             title="🔄 Ticket Reaberto",
-            description=f"Ticket reaberto por {interaction.user.mention}\n\n**Painel de Controle:**",
+            description=f"Ticket reaberto por {interaction.user.mention}",
             color=discord.Color.blue()
         )
         
@@ -76,7 +76,9 @@ class TicketFinalizadoView(ui.View):
         self.clear_items()
         await interaction.message.edit(view=self)
         
-        await self.ticket_channel.send(embed=embed_reaberto, view=reaberto_view)
+        # Enviar NOVA mensagem com botões ABAIXO do embed
+        await self.ticket_channel.send(embed=embed_reaberto)
+        await self.ticket_channel.send("**Painel de Controle:**", view=reaberto_view)
 
 class TicketReabertoView(ui.View):
     """View quando ticket é reaberto - com Deletar e Fechar"""
@@ -119,14 +121,16 @@ class TicketReabertoView(ui.View):
             description=(
                 f"**👤 Usuário:** {user_info}\n"
                 f"**👑 Fechado por:** {interaction.user.mention}\n"
-                f"**📅 Data/Hora:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                "**Painel de Controle (apenas staff):**"
+                f"**📅 Data/Hora:** {datetime.now().strftime('%d/%m/%Y %H:%M')}"
             ),
             color=discord.Color.orange()
         )
         
-        finalizado_view = TicketFinalizadoView(self.ticket_owner_id, self.ticket_channel)
-        await self.ticket_channel.send(embed=embed_fechado, view=finalizado_view)
+        # Enviar embed primeiro
+        await self.ticket_channel.send(embed=embed_fechado)
+        
+        # Enviar botões em mensagem SEPARADA
+        await self.ticket_channel.send("**Painel de Controle (apenas staff):**", view=TicketFinalizadoView(self.ticket_owner_id, self.ticket_channel))
     
     @ui.button(label="🗑️ Deletar Ticket", style=ButtonStyle.red, emoji="🗑️", custom_id="delete_ticket_reaberto", row=0)
     async def delete_ticket_reaberto(self, interaction: discord.Interaction, button: ui.Button):
@@ -199,14 +203,16 @@ class TicketStaffView(ui.View):
             description=(
                 f"**👤 Usuário:** {user_info}\n"
                 f"**👑 Fechado por:** {interaction.user.mention}\n"
-                f"**📅 Data/Hora:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                "**Painel de Controle (apenas staff):**"
+                f"**📅 Data/Hora:** {datetime.now().strftime('%d/%m/%Y %H:%M')}"
             ),
             color=discord.Color.orange()
         )
         
-        finalizado_view = TicketFinalizadoView(self.ticket_owner_id, self.ticket_channel)
-        await self.ticket_channel.send(embed=embed_fechado, view=finalizado_view)
+        # Enviar embed primeiro
+        await self.ticket_channel.send(embed=embed_fechado)
+        
+        # Enviar botões em mensagem SEPARADA
+        await self.ticket_channel.send("**Painel de Controle (apenas staff):**", view=TicketFinalizadoView(self.ticket_owner_id, self.ticket_channel))
     
     
     @ui.button(label="🗑️ Deletar Ticket", style=ButtonStyle.red, emoji="🗑️", custom_id="delete_ticket_staff", row=0)
@@ -309,15 +315,14 @@ class TicketOpenView(ui.View):
                 position=posicao if posicao > 0 else None
             )
             
-            # Embed inicial
+            # Embed inicial (SEM "Painel de Controle:" na descrição)
             embed = discord.Embed(
                 title=f"🎫 Ticket de {interaction.user.display_name}",
                 description=(
                     f"**Aberto por:** {interaction.user.mention}\n"
                     f"**ID:** `{interaction.user.id}`\n"
                     f"**Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                    "**📝 Descreva seu problema ou dúvida:**\n"
-                    "**Painel de Controle:**"
+                    "**📝 Descreva seu problema ou dúvida:**"
                 ),
                 color=discord.Color.purple()
             )
@@ -325,11 +330,15 @@ class TicketOpenView(ui.View):
             # View com botões Deletar e Fechar
             staff_view = TicketStaffView(interaction.user.id, ticket_channel)
             
+            # ENVIAR em 2 mensagens SEPARADAS:
+            # 1. Primeiro o embed
             await ticket_channel.send(
                 content=f"{interaction.user.mention} **Ticket criado!**",
-                embed=embed,
-                view=staff_view
+                embed=embed
             )
+            
+            # 2. DEPOIS os botões em mensagem separada
+            await ticket_channel.send("**Painel de Controle:**", view=staff_view)
             
             # Confirmação
             msg = await interaction.followup.send(
