@@ -40,8 +40,8 @@ async def load_cogs():
     
     # Lista dos SEUS módulos
     cogs = [
-        'modules.tickets',  # ← SEU SISTEMA DE TICKETS
-        'modules.sets',     # ← SEU SISTEMA DE SETS
+        'modules.tickets.py',  # ← SEU SISTEMA DE TICKETS
+        'modules.sets.py',     # ← SEU SISTEMA DE SETS
     ]
     
     for cog in cogs:
