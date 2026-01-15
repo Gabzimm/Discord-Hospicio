@@ -34,26 +34,47 @@ intents.members = True  # IMPORTANTE para tickets/sets
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # ==================== CARREGAR SEUS MÓDULOS ====================
-async def load_cogs():
+    async def load_cogs():
     """Carrega seus módulos (tickets, sets, etc.)"""
-    print("🔄 Carregando seus módulos...")
+    print("=" * 50)
+    print("🔄 INICIANDO CARREGAMENTO DE MÓDULOS...")
+    
+    # Verificar se a pasta modules existe
+    import os
+    if not os.path.exists('modules'):
+        print("❌ PASTA 'modules' NÃO EXISTE!")
+        return
+    
+    print("📁 Conteúdo da pasta 'modules':")
+    try:
+        for file in os.listdir('modules'):
+            print(f"   📄 {file}")
+    except:
+        print("   ❌ Não foi possível listar arquivos")
     
     # Lista dos SEUS módulos
     cogs = [
-        'modules.tickets.py',  # ← SEU SISTEMA DE TICKETS
-        'modules.sets.py',     # ← SEU SISTEMA DE SETS
+        'modules.tickets',
+        'modules.sets',
     ]
     
     for cog in cogs:
+        print(f"\n🔍 Tentando carregar: {cog}")
         try:
             await bot.load_extension(cog)
-            print(f"✅ Módulo '{cog}' carregado com sucesso!")
+            print(f"✅ SUCESSO: Módulo '{cog}' carregado!")
+        except ModuleNotFoundError as e:
+            print(f"❌ ERRO: Módulo não encontrado - {e}")
+        except ImportError as e:
+            print(f"❌ ERRO: Importação falhou - {e}")
         except commands.ExtensionNotFound:
-            print(f"⚠️  Módulo '{cog}' não encontrado")
+            print(f"❌ ERRO: Extensão '{cog}' não encontrada")
         except commands.ExtensionFailed as e:
-            print(f"❌ Erro ao carregar '{cog}': {e}")
+            print(f"❌ ERRO: Extensão falhou - {e.__cause__}")
         except Exception as e:
-            print(f"❌ Erro inesperado em '{cog}': {e}")
+            print(f"❌ ERRO INESPERADO: {type(e).__name__}: {e}")
+    
+    print("=" * 50)
 
 # ==================== EVENTOS ====================
 @bot.event
