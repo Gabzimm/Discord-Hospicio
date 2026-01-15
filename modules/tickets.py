@@ -347,7 +347,7 @@ class TicketsCog(commands.Cog):
             color=discord.Color.purple()
         )
         
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1460384061045608680/1460728997800448293/ChatGPT_Image_13_de_jan._de_2026_20_15_27.png")
+        embed.set_image(url="https://cdn.discordapp.com/attachments/1460761801515073650/1461317989226905757/ChatGPT_Image_13_de_jan._de_2026_20_15_27.png?ex=696a1dee&is=6968cc6e&hm=b46671d72c8ed1fb28625f4603e62930207782b9f186c9859dd926ffe157eb93")
         embed.set_footer(text="Atenção: Não abuse do sistema")
         
         view = TicketOpenView()
