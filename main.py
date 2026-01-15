@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 import os
 import sys
+import asyncio
 
 # ==================== KEEP-ALIVE SERVER ====================
 app = Flask('')
@@ -32,43 +33,27 @@ intents.members = True  # IMPORTANTE para tickets/sets
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# ==================== CARREGAR MÓDULOS ====================
-print("📦 Carregando módulos...")
-
-try:
-    # Carregar módulo de events
-    from modules import events
-    print("✅ Módulo 'events' carregado")
-except ImportError as e:
-    print(f"❌ Erro ao carregar 'events': {e}")
-
-try:
-    # Carregar módulo de commands
-    from modules import commands
-    print("✅ Módulo 'commands' carregado")
-except ImportError as e:
-    print(f"❌ Erro ao carregar 'commands': {e}")
-
-# Carregar COGs (tickets, sets, etc.)
+# ==================== CARREGAR SEUS MÓDULOS ====================
 async def load_cogs():
-    print("🔄 Carregando COGs...")
+    """Carrega seus módulos (tickets, sets, etc.)"""
+    print("🔄 Carregando seus módulos...")
     
-    # Lista de COGs para carregar
+    # Lista dos SEUS módulos
     cogs = [
-        'modules.tickets',      # Se tiver arquivo tickets.py
-        'modules.sets',         # Se tiver arquivo sets.py
-        'modules.events',       # Events como COG
-        'modules.commands'      # Commands como COG
+        'modules.tickets',  # ← SEU SISTEMA DE TICKETS
+        'modules.sets',     # ← SEU SISTEMA DE SETS
     ]
     
     for cog in cogs:
         try:
             await bot.load_extension(cog)
-            print(f"✅ COG '{cog}' carregado")
+            print(f"✅ Módulo '{cog}' carregado com sucesso!")
         except commands.ExtensionNotFound:
-            print(f"⚠️  COG '{cog}' não encontrado")
-        except Exception as e:
+            print(f"⚠️  Módulo '{cog}' não encontrado")
+        except commands.ExtensionFailed as e:
             print(f"❌ Erro ao carregar '{cog}': {e}")
+        except Exception as e:
+            print(f"❌ Erro inesperado em '{cog}': {e}")
 
 # ==================== EVENTOS ====================
 @bot.event
@@ -83,7 +68,7 @@ async def on_ready():
         synced = await bot.tree.sync()
         print(f"✅ {len(synced)} comandos slash sincronizados")
     except Exception as e:
-        print(f"⚠️  Erro ao sincronizar comandos: {e}")
+        print(f"⚠️  Não foi possível sincronizar comandos slash: {e}")
 
 # ==================== COMANDOS BÁSICOS ====================
 @bot.command()
@@ -95,7 +80,8 @@ async def ping(ctx):
 @bot.command()
 async def reload(ctx):
     """Recarrega todos os módulos (apenas dono)"""
-    if ctx.author.id != YOUR_DISCORD_ID:  # Substitua pelo seu ID
+    # Substitua 123456789012345678 pelo SEU ID do Discord
+    if ctx.author.id != 1213819385576300595:  
         return await ctx.send("❌ Apenas o dono pode usar este comando!")
     
     await load_cogs()
@@ -109,6 +95,7 @@ if __name__ == '__main__':
     TOKEN = os.getenv('DISCORD_TOKEN')
     if not TOKEN:
         print("❌ ERRO: DISCORD_TOKEN não encontrado!")
+        print("💡 Configure em: Render Dashboard → Environment → Add Variable")
         sys.exit(1)
     
     print("✅ Token encontrado")
@@ -116,14 +103,20 @@ if __name__ == '__main__':
     # Iniciar keep-alive
     keep_alive()
     
-    # Carregar COGs antes de iniciar
-    import asyncio
-    asyncio.run(load_cogs())
+    # Carregar SEUS módulos antes de iniciar
+    async def startup():
+        await load_cogs()
+    
+    # Executar carregamento
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(startup())
     
     # Iniciar bot
     try:
         bot.run(TOKEN)
     except discord.LoginFailure:
         print("❌ ERRO: Token inválido ou expirado!")
+        print("💡 Gere um novo token em: https://discord.com/developers/applications")
     except Exception as e:
         print(f"❌ Erro inesperado: {e}")
