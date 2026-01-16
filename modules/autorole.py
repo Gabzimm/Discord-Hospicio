@@ -1,494 +1,305 @@
 import discord
 from discord.ext import commands
-from discord import ui, ButtonStyle
-import asyncio
-from datetime import datetime
-import re
+import os
 
-# ========== CLASSES DO SISTEMA DE SET ==========
+# ========== CONFIGURAÇÕES ==========
+intents = discord.Intents.default()
+intents.members = True  # ✅ OBRIGATÓRIO para on_member_join
+intents.message_content = True  # ✅ Para comandos
 
-class SetFinalizadoView(ui.View):
-    """View após set ser aprovado/recusado - APENAS STAFF VÊ"""
-    def __init__(self, fivem_id, game_nick, user_id):
-        super().__init__(timeout=None)
-        self.fivem_id = fivem_id
-        self.game_nick = game_nick
-        self.user_id = user_id
-    
-    @ui.button(label="✅ Concluir Pedido", style=ButtonStyle.green, custom_id="concluir_set")
-    async def concluir_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
-            await interaction.response.send_message("❌ Apenas staff!", ephemeral=True)
-            return
-        
-        await interaction.response.defer()
-        
-        embed = discord.Embed(
-            title="🏁 Pedido Concluído",
-            description=f"Pedido concluído por {interaction.user.mention}",
-            color=discord.Color.green()
-        )
-        
-        self.clear_items()
-        await interaction.message.edit(view=self)
-        await interaction.channel.send(embed=embed)
-    
-    @ui.button(label="🗑️ Excluir Pedido", style=ButtonStyle.red, custom_id="excluir_set")
-    async def excluir_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
-            await interaction.response.send_message("❌ Apenas staff!", ephemeral=True)
-            return
-        
-        await interaction.response.defer()
-        
-        embed = discord.Embed(
-            title="🗑️ Pedido Excluído",
-            description=f"Pedido excluído por {interaction.user.mention}",
-            color=discord.Color.red()
-        )
-        
-        await interaction.channel.send(embed=embed)
-        await asyncio.sleep(3)
-        await interaction.channel.delete()
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-class SetStaffView(ui.View):
-    """View com botões para staff aprovar/recusar set"""
-    def __init__(self, fivem_id, game_nick, user_id, discord_user):
-        super().__init__(timeout=None)
-        self.fivem_id = fivem_id
-        self.game_nick = game_nick
-        self.user_id = user_id
-        self.discord_user = discord_user
-    
-    @ui.button(label="✅ Aprovar Set", style=ButtonStyle.green, custom_id="aprovar_set", row=0)
-    async def aprovar_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
-            await interaction.response.send_message("❌ Apenas staff pode aprovar!", ephemeral=True)
-            return
-        
-        await interaction.response.defer()
-        
-        try:
-            # Buscar membro no servidor
-            member = interaction.guild.get_member(self.user_id)
-            
-            if member:
-                # Criar nickname (máximo 32 caracteres)
-                novo_nick = f"MEM | {self.game_nick} - {self.fivem_id}"
-                if len(novo_nick) > 32:
-                    # Encurtar se necessário
-                    excesso = len(novo_nick) - 32
-                    novo_nick = f"MEM | {self.game_nick[:15]} - {self.fivem_id[:10]}"
-                
-                # Mudar nickname
-                await member.edit(nick=novo_nick)
-                
-                # Dar cargo de membro
-                membro_role = discord.utils.get(interaction.guild.roles, name="𝐌𝐞𝐦𝐛𝐫𝐨")
-                if membro_role:
-                    await member.add_roles(membro_role)
-                
-                # Embed de aprovação
-                embed_aprovado = discord.Embed(
-                    title="✅ SET APROVADO!",
-                    description=(
-                        f"**👤 Discord:** {member.mention}\n"
-                        f"**🆔 Discord ID:** `{self.user_id}`\n"
-                        f"**🎮 ID Fivem:** `{self.fivem_id}`\n"
-                        f"**👤 Nick do Jogo:** `{self.game_nick}`\n"
-                        f"**👑 Aprovado por:** {interaction.user.mention}\n"
-                        f"**📅 Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                        f"✅ **Nickname alterado para:** `{novo_nick}`\n"
-                        f"✅ **Cargo dado:** 𝐌𝐞𝐦𝐛𝐫𝐨"
-                    ),
-                    color=discord.Color.green()
-                )
-                
-                # Remover botões de aprovar/recusar
-                self.clear_items()
-                await interaction.message.edit(embed=embed_aprovado, view=self)
-                
-                # Adicionar view de concluir/excluir
-                finalizado_view = SetFinalizadoView(self.fivem_id, self.game_nick, self.user_id)
-                await interaction.channel.send("**Controles Finais:**", view=finalizado_view)
-                
-                # Notificação no canal
-                await interaction.followup.send(
-                    f"✅ Set de {member.mention} aprovado!\nNickname: `{novo_nick}`",
-                    ephemeral=True
-                )
-                
-                # DM para o usuário
-                try:
-                    embed_dm = discord.Embed(
-                        title="✅ SEU SET FOI APROVADO!",
-                        description=(
-                            f"Parabéns! Seu pedido de set foi aprovado por {interaction.user.mention}\n\n"
-                            f"**📋 Detalhes:**\n"
-                            f"• **Nickname:** `{novo_nick}`\n"
-                            f"• **ID Fivem:** `{self.fivem_id}`\n"
-                            f"• **Cargo:** 𝐌𝐞𝐦𝐛𝐫𝐨\n\n"
-                            f"🎮 Bem-vindo ao servidor!"
-                        ),
-                        color=discord.Color.green()
-                    )
-                    await member.send(embed=embed_dm)
-                except:
-                    pass  # Se não conseguir DM
-                    
-            else:
-                await interaction.followup.send(
-                    f"❌ Usuário não encontrado! ID: `{self.user_id}`",
-                    ephemeral=True
-                )
-                
-        except discord.Forbidden:
-            await interaction.followup.send(
-                "❌ Não tenho permissão para alterar nickname ou dar cargos!",
-                ephemeral=True
-            )
-        except Exception as e:
-            print(f"❌ Erro ao aprovar set: {e}")
-            await interaction.followup.send(
-                f"❌ Erro ao aprovar set: {e}",
-                ephemeral=True
-            )
-    
-    @ui.button(label="❌ Recusar Set", style=ButtonStyle.red, emoji="🚫", custom_id="recusar_set", row=0)
-    async def recusar_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
-            await interaction.response.send_message("❌ Apenas staff pode recusar!", ephemeral=True)
-            return
-        
-        await interaction.response.defer()
-        
-        # Embed de recusa
-        embed_recusado = discord.Embed(
-            title="❌ SET RECUSADO",
-            description=(
-                f"**👤 Discord:** {self.discord_user.mention}\n"
-                f"**🆔 Discord ID:** `{self.user_id}`\n"
-                f"**🎮 ID Fivem:** `{self.fivem_id}`\n"
-                f"**👤 Nick do Jogo:** `{self.game_nick}`\n"
-                f"**👑 Recusado por:** {interaction.user.mention}\n"
-                f"**📅 Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            ),
-            color=discord.Color.red()
-        )
-        
-        # Remover botões de aprovar/recusar
-        self.clear_items()
-        await interaction.message.edit(embed=embed_recusado, view=self)
-        
-        # Adicionar view de concluir/excluir
-        finalizado_view = SetFinalizadoView(self.fivem_id, self.game_nick, self.user_id)
-        await interaction.channel.send("**Controles Finais:**", view=finalizado_view)
-        
-        await interaction.followup.send(
-            "✅ Set recusado!",
-            ephemeral=True
-        )
+# ⚠️ SUBSTITUA PELO ID REAL DO CARGO "𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨"
+CARGO_ID = 1460747749241913434  # ← COLOCA O ID AQUI!
 
-class SetForm(ui.Modal, title="📝 Pedido de Set"):
-    """Modal para coletar dados do set"""
+# ========== EVENTOS ==========
+@bot.event
+async def on_ready():
+    print(f"✅ Bot conectado como {bot.user}")
+    print(f"🆔 ID do Bot: {bot.user.id}")
+    print(f"📡 Ping: {round(bot.latency * 1000)}ms")
     
-    fivem_id = ui.TextInput(
-        label="Digite seu ID do Jogo (Fivem):",
-        placeholder="Ex: 2314",
-        style=discord.TextStyle.short,
-        required=True,
-        max_length=50
-    )
-    
-    game_nick = ui.TextInput(
-        label="Digite seu Nick do Jogo:",
-        placeholder="Ex: João silva",
-        style=discord.TextStyle.short,
-        required=True,
-        max_length=32
-    )
-    
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
-        try:
-            # ========== VALIDAÇÃO DO ID (APENAS NÚMEROS) ==========
-            if not self.fivem_id.value.isdigit():
-                error_msg = await interaction.followup.send(
-                    "❌ **ERRO:** ID do Fivem deve conter APENAS números!\nExemplo: `12344`",
-                    ephemeral=True,
-                    wait=True
-                )
-                await asyncio.sleep(5)
-                await error_msg.delete()
-                return
-            
-            # ========== VALIDAÇÃO DO NICK ==========
-            def nick_valido(nick):
-                # Permite letras, números, espaços, acentos, _, -, .
-                padrao = r'^[a-zA-ZÀ-ÿ0-9 _\-\.]+$'
-                return bool(re.match(padrao, nick))
-            
-            if not nick_valido(self.game_nick.value):
-                error_msg = await interaction.followup.send(
-                    "❌ **ERRO:** Nick do Jogo inválido!\nUse apenas: letras, números, espaço, _, -, .",
-                    ephemeral=True,
-                    wait=True
-                )
-                await asyncio.sleep(5)
-                await error_msg.delete()
-                return
-            
-            # ========== ENCONTRAR CANAL #aprovamento ==========
-            canal_aprovamento = discord.utils.get(interaction.guild.text_channels, name="𝐀𝐩𝐫𝐨𝐯𝐚𝐦𝐞𝐧𝐭𝐨")
-            
-            if not canal_aprovamento:
-                error_msg = await interaction.followup.send(
-                    "❌ Canal #aprovamento não encontrado!",
-                    ephemeral=True,
-                    wait=True
-                )
-                await asyncio.sleep(5)
-                await error_msg.delete()
-                return
-            
-            # ========== VERIFICAR SE ID JÁ EXISTE ==========
-            id_existente = False
-            async for message in canal_aprovamento.history(limit=100):
-                if message.embeds and len(message.embeds) > 0:
-                    embed_desc = message.embeds[0].description or ""
-                    if f"**🎮 ID Fivem:** `{self.fivem_id.value}`" in embed_desc:
-                        id_existente = True
-                        break
-            
-            if id_existente:
-                error_msg = await interaction.followup.send(
-                    f"❌ O ID Fivem `{self.fivem_id.value}` já está em uso!",
-                    ephemeral=True,
-                    wait=True
-                )
-                await asyncio.sleep(5)
-                await error_msg.delete()
-                return
-            
-            # ========== CRIAR EMBED DO PEDIDO ==========
-            embed = discord.Embed(
-                title="🎮 NOVO PEDIDO DE SET",
-                description=(
-                    f"**👤 Discord:** {interaction.user.mention}\n"
-                    f"**🆔 Discord ID:** `{interaction.user.id}`\n"
-                    f"**🎮 ID Fivem:** `{self.fivem_id.value}`\n"
-                    f"**👤 Nick do Jogo:** `{self.game_nick.value}`\n"
-                    f"**📅 Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                    "**⏳ Status:** Aguardando aprovação"
-                ),
-                color=discord.Color.purple()
-            )
-            embed.set_footer(text=f"ID Único: {self.fivem_id.value}")
-            
-            # ========== ENVIAR PARA 𝐀𝐩𝐫𝐨𝐯𝐚𝐦𝐞𝐧𝐭𝐨 ==========
-            view = SetStaffView(self.fivem_id.value, self.game_nick.value, interaction.user.id, interaction.user)
-            await canal_aprovamento.send(embed=embed, view=view)
-            
-            # ========== CONFIRMAÇÃO PARA O USUÁRIO ==========
-            success_msg = await interaction.followup.send(
-                f"✅ **Pedido enviado com sucesso!**\n\n"
-                f"**🎮 ID Fivem:** `{self.fivem_id.value}`\n"
-                f"**👤 Nick:** `{self.game_nick.value}`\n\n"
-                f"⏳ **A equipe analisará seu pedido em breve!**\n"
-                f"Você será notificado por DM quando for aprovado.",
-                ephemeral=True,
-                wait=True
-            )
-            await asyncio.sleep(10)
-            await success_msg.delete()
-            
-        except Exception as e:
-            print(f"❌ Erro no pedido de set: {e}")
-            error_msg = await interaction.followup.send(
-                f"❌ Erro ao enviar pedido: {e}",
-                ephemeral=True,
-                wait=True
-            )
-            await asyncio.sleep(5)
-            await error_msg.delete()
-
-class SetOpenView(ui.View):
-    """View inicial - botão para pedir set"""
-    def __init__(self):
-        super().__init__(timeout=None)
-    
-    @ui.button(label="Peça seu Set!", style=ButtonStyle.primary, emoji="🎮", custom_id="pedir_set")
-    async def pedir_set(self, interaction: discord.Interaction, button: ui.Button):
-        modal = SetForm()
-        await interaction.response.send_modal(modal)
-
-# ========== COMANDOS DO SISTEMA DE SET ==========
-
-class SetsCog(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        print("✅ Módulo de Sets carregado!")
-    
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def setup_set(self, ctx):
-        """Configura o painel de pedido de set no canal atual"""
-        
-        embed = discord.Embed(
-            title="🎮 **PEÇA SEU SET AQUI!**",
-            description=(
-                "Clique no botão abaixo e peça seu\n"
-                "aprovamento para receber seu set\n"
-                "personalizado no servidor.\n\n"
-                "**📌 Instruções:**\n"
-                "1. Clique em **'Peça seu Set!'**\n"
-                "2. Digite seu **ID do Fivem**\n"
-                "3. Digite seu **Nick do Jogo**\n\n"
-            ),
-            color=discord.Color.purple()
-        )
-        
-        # BANNER DO SET (use seu próprio)
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1460761801515073650/1460761861015339058/ChatGPT_Image_12_de_jan._de_2026_21_20_43.png")
-        embed.set_footer(text="Sistema automático • IDs únicos obrigatórios")
-        
-        view = SetOpenView()
-        
-        await ctx.send(embed=embed, view=view)
-        await ctx.message.delete()
-    
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def check_id(self, ctx, *, fivem_id: str):
-        """Verifica se um ID Fivem já está em uso"""
-        canal_aprovamento = discord.utils.get(ctx.guild.text_channels, name="𝐀𝐩𝐫𝐨𝐯𝐚𝐦𝐞𝐧𝐭𝐨")
-        
-        if not canal_aprovamento:
-            await ctx.send("❌ Canal #aprovamento não encontrado!")
-            return
-        
-        # Validar se é número
-        if not fivem_id.isdigit():
-            await ctx.send("❌ ID deve conter apenas números!")
-            return
-        
-        encontrado = False
-        mensagem_link = None
-        
-        async for message in canal_aprovamento.history(limit=100):
-            if message.embeds and len(message.embeds) > 0:
-                embed = message.embeds[0]
-                if embed.description and f"**🎮 ID Fivem:** `{fivem_id}`" in embed.description:
-                    encontrado = True
-                    mensagem_link = message.jump_url
-                    break
-        
-        if encontrado:
-            embed = discord.Embed(
-                title="🔍 ID Encontrado",
-                description=f"ID `{fivem_id}` já está em uso!",
-                color=discord.Color.orange()
-            )
-            embed.add_field(name="Link do Pedido", value=f"[Clique aqui]({mensagem_link})")
-            await ctx.send(embed=embed)
+    # Verificar se cargo existe
+    for guild in bot.guilds:
+        cargo = guild.get_role(CARGO_ID)
+        if cargo:
+            print(f"✅ Cargo encontrado: {cargo.name} (ID: {cargo.id})")
         else:
-            await ctx.send(f"✅ ID `{fivem_id}` não está em uso!")
-    
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def sets_pendentes(self, ctx):
-        """Mostra todos os pedidos de set pendentes"""
-        canal_aprovamento = discord.utils.get(ctx.guild.text_channels, name="𝐀𝐩𝐫𝐨𝐯𝐚𝐦𝐞𝐧𝐭𝐨")
-        
-        if not canal_aprovamento:
-            await ctx.send("❌ Canal #aprovamento não encontrado!")
-            return
-        
-        pedidos_pendentes = []
-        
-        async for message in canal_aprovamento.history(limit=50):
-            if message.embeds and len(message.embeds) > 0:
-                embed = message.embeds[0]
-                if "Aguardando aprovação" in (embed.description or ""):
-                    pedidos_pendentes.append(message)
-        
-        if not pedidos_pendentes:
-            await ctx.send("✅ Nenhum pedido de set pendente!")
-            return
-        
-        embed = discord.Embed(
-            title="📋 Pedidos de Set Pendentes",
-            description=f"Total: **{len(pedidos_pendentes)}** pedidos",
-            color=discord.Color.blue()
-        )
-        
-        for i, msg in enumerate(pedidos_pendentes[:5], 1):
-            pedido_embed = msg.embeds[0]
-            
-            # Extrair informações do embed
-            descricao = pedido_embed.description or ""
-            
-            # Encontrar ID Fivem
-            id_match = re.search(r'\*\*🎮 ID Fivem:\*\* `([^`]+)`', descricao)
-            id_fivem = id_match.group(1) if id_match else "Não encontrado"
-            
-            # Encontrar Nick
-            nick_match = re.search(r'\*\*👤 Nick do Jogo:\*\* `([^`]+)`', descricao)
-            nick = nick_match.group(1) if nick_match else "Não encontrado"
-            
-            # Encontrar Usuário
-            user_match = re.search(r'\*\*👤 Discord:\*\* <@!?(\d+)>', descricao)
-            user_id = user_match.group(1) if user_match else "Não encontrado"
-            
-            embed.add_field(
-                name=f"Pedido #{i}",
-                value=(
-                    f"**ID:** `{id_fivem}`\n"
-                    f"**Nick:** `{nick}`\n"
-                    f"**Usuário:** <@{user_id}>\n"
-                    f"[Ver pedido]({msg.jump_url})"
-                ),
-                inline=False
-            )
-        
-        if len(pedidos_pendentes) > 5:
-            embed.set_footer(text=f"Mostrando 5 de {len(pedidos_pendentes)} pedidos • Use !sets_pendentes2 para mais")
-        
-        await ctx.send(embed=embed)
-    
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def aprovar_set_manual(self, ctx, user: discord.Member, fivem_id: str, *, game_nick: str):
-        """Aprova um set manualmente"""
-        try:
-            # Criar nickname (máximo 32 caracteres)
-            novo_nick = f"MEM | {game_nick} - {fivem_id}"
-            if len(novo_nick) > 32:
-                novo_nick = f"MEM | {game_nick[:15]} - {fivem_id[:10]}"
-            
-            # Mudar nickname
-            await user.edit(nick=novo_nick)
-            
-            # Dar cargo de membro
-            membro_role = discord.utils.get(ctx.guild.roles, name="𝐌𝐞𝐦𝐛𝐫𝐨")
-            if membro_role:
-                await user.add_roles(membro_role)
-            
-            await ctx.send(
-                f"✅ Set aprovado manualmente!\n"
-                f"**Usuário:** {user.mention}\n"
-                f"**Nickname:** `{novo_nick}`\n"
-                f"**ID Fivem:** `{fivem_id}`"
-            )
-            
-        except Exception as e:
-            await ctx.send(f"❌ Erro: {e}")
+            print(f"❌ Cargo com ID {CARGO_ID} NÃO encontrado no servidor {guild.name}")
 
-async def setup(bot):
-    await bot.add_cog(SetsCog(bot))
-    print("✅ Sistema de Sets carregado com sucesso!")
+@bot.event
+async def on_member_join(member):
+    print(f"🎯 {member.name} entrou no servidor!")
+    
+    try:
+        # Buscar cargo pelo ID
+        cargo = member.guild.get_role(CARGO_ID)
+        
+        if not cargo:
+            print(f"❌ Cargo com ID {CARGO_ID} não encontrado!")
+            return
+        
+        print(f"✅ Cargo encontrado: {cargo.name}")
+        
+        # Verificar permissões do bot
+        bot_member = member.guild.get_member(bot.user.id)
+        if not bot_member.guild_permissions.manage_roles:
+            print("❌ Bot SEM permissão 'Gerenciar Cargos'")
+            return
+        
+        # Verificar hierarquia
+        bot_top_role = bot_member.top_role
+        if bot_top_role.position <= cargo.position:
+            print(f"❌ Hierarquia: Bot role ({bot_top_role.position}) ≤ Cargo ({cargo.position})")
+            print(f"💡 Solução: Arraste o cargo do bot ACIMA do cargo {cargo.name}")
+            return
+        
+        # Dar o cargo
+        await member.add_roles(cargo, reason="Auto-role: entrada no servidor")
+        print(f"✅ Cargo '{cargo.name}' dado para {member.name}")
+        
+        # Log no console
+        print(f"📝 {member.name} recebeu o cargo {cargo.name}")
+        
+    except discord.Forbidden:
+        print("❌ PERMISSÃO NEGADA: Bot não pode dar este cargo")
+    except Exception as e:
+        print(f"❌ ERRO: {type(e).__name__}: {e}")
+
+# ========== COMANDOS DE TESTE ==========
+@bot.command()
+async def test_autorole(ctx, member: discord.Member = None):
+    """Testa o sistema de auto-role"""
+    if member is None:
+        member = ctx.author
+    
+    cargo = ctx.guild.get_role(CARGO_ID)
+    
+    if not cargo:
+        await ctx.send(f"❌ Cargo com ID `{CARGO_ID}` não encontrado!")
+        return
+    
+    try:
+        await member.add_roles(cargo)
+        await ctx.send(f"✅ Teste OK! Cargo {cargo.mention} dado para {member.mention}")
+    except Exception as e:
+        await ctx.send(f"❌ Erro: `{type(e).__name__}: {e}`")
+
+@bot.command()
+async def autorole_info(ctx):
+    """Mostra informações do sistema de auto-role"""
+    cargo = ctx.guild.get_role(CARGO_ID)
+    
+    embed = discord.Embed(
+        title="🛬 Sistema de Auto-Role",
+        color=discord.Color.blue()
+    )
+    
+    if cargo:
+        embed.description = f"**Cargo alvo:** {cargo.mention} (`{cargo.id}`)"
+        embed.add_field(name="🎨 Cor", value=str(cargo.color), inline=True)
+        embed.add_field(name="👥 Membros", value=len(cargo.members), inline=True)
+        embed.add_field(name="📊 Posição", value=f"#{cargo.position}", inline=True)
+        
+        # Verificar permissões
+        bot_member = ctx.guild.get_member(bot.user.id)
+        if bot_member.guild_permissions.manage_roles:
+            embed.add_field(name="✅ Permissão", value="Gerenciar Cargos", inline=True)
+        else:
+            embed.add_field(name="❌ Permissão", value="Falta: Gerenciar Cargos", inline=True)
+        
+        # Verificar hierarquia
+        bot_top_role = bot_member.top_role
+        if bot_top_role.position > cargo.position:
+            embed.add_field(name="✅ Hierarquia", value="Bot acima do cargo", inline=True)
+        else:
+            embed.add_field(name="❌ Hierarquia", value="Bot abaixo do cargo", inline=True)
+            
+        embed.set_footer(text="Status: Ativo ✅")
+    else:
+        embed.description = f"❌ Cargo com ID `{CARGO_ID}` não encontrado!"
+        embed.add_field(
+            name="🆔 Como encontrar o ID:",
+            value="1. Ative Modo Desenvolvedor\n2. Clique direito no cargo → Copiar ID",
+            inline=False
+        )
+    
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def set_cargo_id(ctx, novo_id: int):
+    """Define um novo ID de cargo para auto-role"""
+    global CARGO_ID
+    CARGO_ID = novo_id
+    
+    cargo = ctx.guild.get_role(CARGO_ID)
+    if cargo:
+        await ctx.send(f"✅ Auto-role configurado para: {cargo.mention} (`{cargo.id}`)")
+    else:
+        await ctx.send(f"⚠️ ID `{novo_id}` definido, mas cargo não encontrado")
+
+# ========== INICIAR BOT ==========
+if __name__ == "__main__":
+    # Lê o token da variável de ambiente
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    
+    if not TOKEN:
+        print("❌ ERRO: DISCORD_TOKEN não encontrado!")
+        print("💡 Configure a variável de ambiente ou coloque o token diretamente")
+        exit(1)
+    
+    print("🚀 Iniciando bot...")
+    bot.run(TOKEN)import discord
+from discord.ext import commands
+import os
+
+# ========== CONFIGURAÇÕES ==========
+intents = discord.Intents.default()
+intents.members = True  # ✅ OBRIGATÓRIO para on_member_join
+intents.message_content = True  # ✅ Para comandos
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ⚠️ SUBSTITUA PELO ID REAL DO CARGO "𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨"
+CARGO_ID = 123456789012345678  # ← COLOCA O ID AQUI!
+
+# ========== EVENTOS ==========
+@bot.event
+async def on_ready():
+    print(f"✅ Bot conectado como {bot.user}")
+    print(f"🆔 ID do Bot: {bot.user.id}")
+    print(f"📡 Ping: {round(bot.latency * 1000)}ms")
+    
+    # Verificar se cargo existe
+    for guild in bot.guilds:
+        cargo = guild.get_role(CARGO_ID)
+        if cargo:
+            print(f"✅ Cargo encontrado: {cargo.name} (ID: {cargo.id})")
+        else:
+            print(f"❌ Cargo com ID {CARGO_ID} NÃO encontrado no servidor {guild.name}")
+
+@bot.event
+async def on_member_join(member):
+    print(f"🎯 {member.name} entrou no servidor!")
+    
+    try:
+        # Buscar cargo pelo ID
+        cargo = member.guild.get_role(CARGO_ID)
+        
+        if not cargo:
+            print(f"❌ Cargo com ID {CARGO_ID} não encontrado!")
+            return
+        
+        print(f"✅ Cargo encontrado: {cargo.name}")
+        
+        # Verificar permissões do bot
+        bot_member = member.guild.get_member(bot.user.id)
+        if not bot_member.guild_permissions.manage_roles:
+            print("❌ Bot SEM permissão 'Gerenciar Cargos'")
+            return
+        
+        # Verificar hierarquia
+        bot_top_role = bot_member.top_role
+        if bot_top_role.position <= cargo.position:
+            print(f"❌ Hierarquia: Bot role ({bot_top_role.position}) ≤ Cargo ({cargo.position})")
+            print(f"💡 Solução: Arraste o cargo do bot ACIMA do cargo {cargo.name}")
+            return
+        
+        # Dar o cargo
+        await member.add_roles(cargo, reason="Auto-role: entrada no servidor")
+        print(f"✅ Cargo '{cargo.name}' dado para {member.name}")
+        
+        # Log no console
+        print(f"📝 {member.name} recebeu o cargo {cargo.name}")
+        
+    except discord.Forbidden:
+        print("❌ PERMISSÃO NEGADA: Bot não pode dar este cargo")
+    except Exception as e:
+        print(f"❌ ERRO: {type(e).__name__}: {e}")
+
+# ========== COMANDOS DE TESTE ==========
+@bot.command()
+async def test_autorole(ctx, member: discord.Member = None):
+    """Testa o sistema de auto-role"""
+    if member is None:
+        member = ctx.author
+    
+    cargo = ctx.guild.get_role(CARGO_ID)
+    
+    if not cargo:
+        await ctx.send(f"❌ Cargo com ID `{CARGO_ID}` não encontrado!")
+        return
+    
+    try:
+        await member.add_roles(cargo)
+        await ctx.send(f"✅ Teste OK! Cargo {cargo.mention} dado para {member.mention}")
+    except Exception as e:
+        await ctx.send(f"❌ Erro: `{type(e).__name__}: {e}`")
+
+@bot.command()
+async def autorole_info(ctx):
+    """Mostra informações do sistema de auto-role"""
+    cargo = ctx.guild.get_role(CARGO_ID)
+    
+    embed = discord.Embed(
+        title="🛬 Sistema de Auto-Role",
+        color=discord.Color.blue()
+    )
+    
+    if cargo:
+        embed.description = f"**Cargo alvo:** {cargo.mention} (`{cargo.id}`)"
+        embed.add_field(name="🎨 Cor", value=str(cargo.color), inline=True)
+        embed.add_field(name="👥 Membros", value=len(cargo.members), inline=True)
+        embed.add_field(name="📊 Posição", value=f"#{cargo.position}", inline=True)
+        
+        # Verificar permissões
+        bot_member = ctx.guild.get_member(bot.user.id)
+        if bot_member.guild_permissions.manage_roles:
+            embed.add_field(name="✅ Permissão", value="Gerenciar Cargos", inline=True)
+        else:
+            embed.add_field(name="❌ Permissão", value="Falta: Gerenciar Cargos", inline=True)
+        
+        # Verificar hierarquia
+        bot_top_role = bot_member.top_role
+        if bot_top_role.position > cargo.position:
+            embed.add_field(name="✅ Hierarquia", value="Bot acima do cargo", inline=True)
+        else:
+            embed.add_field(name="❌ Hierarquia", value="Bot abaixo do cargo", inline=True)
+            
+        embed.set_footer(text="Status: Ativo ✅")
+    else:
+        embed.description = f"❌ Cargo com ID `{CARGO_ID}` não encontrado!"
+        embed.add_field(
+            name="🆔 Como encontrar o ID:",
+            value="1. Ative Modo Desenvolvedor\n2. Clique direito no cargo → Copiar ID",
+            inline=False
+        )
+    
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def set_cargo_id(ctx, novo_id: int):
+    """Define um novo ID de cargo para auto-role"""
+    global CARGO_ID
+    CARGO_ID = novo_id
+    
+    cargo = ctx.guild.get_role(CARGO_ID)
+    if cargo:
+        await ctx.send(f"✅ Auto-role configurado para: {cargo.mention} (`{cargo.id}`)")
+    else:
+        await ctx.send(f"⚠️ ID `{novo_id}` definido, mas cargo não encontrado")
+
+# ========== INICIAR BOT ==========
+if __name__ == "__main__":
+    # Lê o token da variável de ambiente
+    TOKEN = os.getenv("DISCORD_TOKEN")
+    
+    if not TOKEN:
+        print("❌ ERRO: DISCORD_TOKEN não encontrado!")
+        print("💡 Configure a variável de ambiente ou coloque o token diretamente")
+        exit(1)
+    
+    print("🚀 Iniciando bot...")
+    bot.run(TOKEN)
