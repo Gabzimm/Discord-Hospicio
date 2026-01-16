@@ -57,6 +57,7 @@ async def load_cogs():
     cogs = [
         'modules.tickets',
         'modules.autorole',
+        'modules.sets',
     ]
     
     for cog in cogs:
