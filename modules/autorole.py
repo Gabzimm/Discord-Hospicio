@@ -162,7 +162,7 @@ intents.message_content = True  # ✅ Para comandos
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ⚠️ SUBSTITUA PELO ID REAL DO CARGO "𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨"
-CARGO_ID = 123456789012345678  # ← COLOCA O ID AQUI!
+CARGO_ID = 1460747749241913434  # ← COLOCA O ID AQUI!
 
 # ========== EVENTOS ==========
 @bot.event
