@@ -98,7 +98,7 @@ class SetStaffView(ui.View):
                 await member.edit(nick=novo_nick)
                 
                 # Dar cargo de membro
-                membro_role = discord.utils.get(interaction.guild.roles, name="𝐌𝐞𝐦𝐛𝐫𝐨")
+                membro_role = discord.utils.get(interaction.guild.roles, name="𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨")
                 if membro_role:
                     await member.add_roles(membro_role)
                 
