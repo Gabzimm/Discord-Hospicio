@@ -1,4 +1,9 @@
-intents.members = True  # NECESSÁRIO PARA DETECTAR NOVOS MEMBROS
+import discord
+from discord.ext import commands
+import os
+
+intents = discord.Intents.default()
+intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
