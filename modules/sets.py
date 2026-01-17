@@ -17,7 +17,7 @@ class SetFinalizadoView(ui.View):
     
     @ui.button(label="✅ Concluir Pedido", style=ButtonStyle.green, custom_id="concluir_set")
     async def concluir_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
+        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
         if not any(role.name in staff_roles for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff!", ephemeral=True)
             return
@@ -36,7 +36,7 @@ class SetFinalizadoView(ui.View):
     
     @ui.button(label="🗑️ Excluir Pedido", style=ButtonStyle.red, custom_id="excluir_set")
     async def excluir_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
+        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
         if not any(role.name in staff_roles for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff!", ephemeral=True)
             return
@@ -77,7 +77,7 @@ class SetStaffView(ui.View):
     
     @ui.button(label="✅ Aprovar Set", style=ButtonStyle.green, custom_id="aprovar_set", row=0)
     async def aprovar_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
+        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
         if not any(role.name in staff_roles for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff pode aprovar!", ephemeral=True)
             return
@@ -161,7 +161,7 @@ class SetStaffView(ui.View):
     
     @ui.button(label="❌ Recusar Set", style=ButtonStyle.red, custom_id="recusar_set", row=0)
     async def recusar_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00 🐐", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐀𝐃𝐌", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Dono", "Owner"]
+        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
         if not any(role.name in staff_roles for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff pode recusar!", ephemeral=True)
             return
@@ -319,7 +319,7 @@ class SetsCog(commands.Cog):
             color=discord.Color.purple()
         )
         
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1460761801515073650/1460761861015339058/ChatGPT_Image_12_de_jan._de_2026_21_20_43.png")
+        embed.set_image(url="https://cdn.discordapp.com/attachments/1462150327070359707/1462150528749408366/ChatGPT_Image_17_de_jan._de_2026_18_23_44.png?ex=696d254b&is=696bd3cb&hm=9f8be55310c13df050985fc83a911fa315cf7f0cb6b8125258ce4b0e84edddc4")
         embed.set_footer(text="IDs únicos obrigatórios • Aprovação em até 1h")
         
         view = SetOpenView()
