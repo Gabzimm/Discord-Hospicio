@@ -6,8 +6,6 @@ from datetime import datetime
 import re
 
 # ========== CONFIGURAÇÃO ==========
-
-# Cargos que podem aprovar sets (staff)
 STAFF_ROLES = [
     "00", 
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", 
@@ -67,7 +65,7 @@ class SetFinalizadoView(ui.View):
             await interaction.channel.send(embed=embed)
             await mensagem_pedido.delete()
             
-            print(f"✅ Pedido excluído (mensagem) - ID Fivem: {self.fivem_id}")
+            print(f"✅ Pedido excluído - ID Fivem: {self.fivem_id}")
             
         except discord.Forbidden:
             await interaction.followup.send("❌ Não tenho permissão para excluir mensagens!", ephemeral=True)
@@ -85,7 +83,6 @@ class SetStaffView(ui.View):
     
     @ui.button(label="✅ Aprovar Set", style=ButtonStyle.green, custom_id="aprovar_set", row=0)
     async def aprovar_set(self, interaction: discord.Interaction, button: ui.Button):
-        # Verificar se é staff
         if not any(role.name in STAFF_ROLES for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff pode aprovar!", ephemeral=True)
             return
@@ -93,7 +90,7 @@ class SetStaffView(ui.View):
         await interaction.response.defer()
         
         try:
-            # VERIFICAR PERMISSÕES DO BOT PRIMEIRO
+            # VERIFICAR PERMISSÕES DO BOT
             bot_member = interaction.guild.me
             
             # Verificar permissão para gerenciar nicknames
@@ -104,8 +101,8 @@ class SetStaffView(ui.View):
                         "O bot precisa da permissão **'Gerenciar Apelidos'**!\n\n"
                         "**Como resolver:**\n"
                         "1. Vá em **Configurações do Servidor**\n"
-                        "2. **Cargos do Bot**\n"
-                        "3. Ative **'Gerenciar Apelidos'** e **'Gerenciar Cargos'**\n"
+                        "2. **Cargos** → Cargo do Bot\n"
+                        "3. Ative **'Gerenciar Apelidos'**\n"
                         "4. Salve as alterações"
                     ),
                     color=discord.Color.red()
@@ -121,96 +118,93 @@ class SetStaffView(ui.View):
                 )
                 return
             
-            # Buscar membro no servidor
+            # Buscar membro
             member = interaction.guild.get_member(self.user_id)
             
-            if member:
-                # Criar nickname (máximo 32 caracteres)
-                novo_nick = f"AV | {self.game_nick} - {self.fivem_id}"
-                if len(novo_nick) > 32:
-                    novo_nick = f"AV | {self.game_nick[:15]} - {self.fivem_id[:10]}"
-                
-                # 1. Mudar nickname
-                await member.edit(nick=novo_nick)
-                print(f"✅ Nickname alterado para: {novo_nick}")
-                
-                # 2. Remover cargo de visitante se existir
-                visitante_role = discord.utils.get(interaction.guild.roles, name="𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞")
-                if visitante_role and visitante_role in member.roles:
-                    await member.remove_roles(visitante_role)
-                    print(f"✅ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' removido de {member.name}")
-                
-                # 3. Dar cargo de membro
-                membro_role = discord.utils.get(interaction.guild.roles, name="𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨")
-                if membro_role:
-                    await member.add_roles(membro_role)
-                    print(f"✅ Cargo '𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨' adicionado a {member.name}")
-                
-                # Embed de aprovação
-                embed_aprovado = discord.Embed(
-                    title="✅ SET APROVADO!",
+            if not member:
+                await interaction.followup.send(f"❌ Usuário não encontrado! ID: `{self.user_id}`", ephemeral=True)
+                return
+            
+            # 1. Criar nickname
+            novo_nick = f"AV | {self.game_nick} - {self.fivem_id}"
+            if len(novo_nick) > 32:
+                novo_nick = f"AV | {self.game_nick[:15]} - {self.fivem_id[:10]}"
+            
+            # 2. Mudar nickname
+            await member.edit(nick=novo_nick)
+            print(f"✅ Nickname alterado para: {novo_nick}")
+            
+            # 3. Remover cargo de visitante
+            visitante_role = discord.utils.get(interaction.guild.roles, name="𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞")
+            if visitante_role and visitante_role in member.roles:
+                await member.remove_roles(visitante_role)
+                print(f"✅ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' removido de {member.name}")
+            
+            # 4. Dar cargo de membro
+            membro_role = discord.utils.get(interaction.guild.roles, name="𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨")
+            if membro_role:
+                await member.add_roles(membro_role)
+                print(f"✅ Cargo '𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨' adicionado a {member.name}")
+            
+            # Embed de aprovação
+            embed_aprovado = discord.Embed(
+                title="✅ SET APROVADO!",
+                description=(
+                    f"**👤 Discord:** {member.mention}\n"
+                    f"**🎮 ID Fivem:** `{self.fivem_id}`\n"
+                    f"**👤 Nick do Jogo:** `{self.game_nick}`\n"
+                    f"**👑 Aprovado por:** {interaction.user.mention}\n"
+                    f"**📅 Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+                    f"✅ **Nickname alterado para:** `{novo_nick}`\n"
+                    f"✅ **Cargo atualizado:** 𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨"
+                ),
+                color=discord.Color.green()
+            )
+            
+            if visitante_role and visitante_role in member.roles:
+                embed_aprovado.description += f"\n✅ **Cargo removido:** 𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
+            
+            # Remover botões
+            self.clear_items()
+            await interaction.message.edit(embed=embed_aprovado, view=self)
+            
+            # Adicionar view final
+            finalizado_view = SetFinalizadoView(self.fivem_id, self.game_nick, self.user_id)
+            await interaction.channel.send("**Controles Finais:**", view=finalizado_view)
+            
+            # Confirmação
+            await interaction.followup.send(
+                f"✅ Set de {member.mention} aprovado!\n"
+                f"• Nickname: `{novo_nick}`\n"
+                f"• Cargo: 𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨",
+                ephemeral=True
+            )
+            
+            # DM para o usuário
+            try:
+                embed_dm = discord.Embed(
+                    title="✅ SEU SET FOI APROVADO!",
                     description=(
-                        f"**👤 Discord:** {member.mention}\n"
-                        f"**🎮 ID Fivem:** `{self.fivem_id}`\n"
-                        f"**👤 Nick do Jogo:** `{self.game_nick}`\n"
-                        f"**👑 Aprovado por:** {interaction.user.mention}\n"
-                        f"**📅 Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-                        f"✅ **Nickname alterado para:** `{novo_nick}`\n"
-                        f"✅ **Cargo atualizado:** 𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨\n"
-                        f"✅ **Cargo removido:** 𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
+                        f"Parabéns! Seu pedido de set foi aprovado por {interaction.user.mention}\n\n"
+                        f"**📋 Detalhes:**\n"
+                        f"• **Nickname:** `{novo_nick}`\n"
+                        f"• **ID Fivem:** `{self.fivem_id}`\n"
+                        f"• **Cargo:** 𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨\n\n"
+                        f"🎮 Bem-vindo ao servidor!"
                     ),
                     color=discord.Color.green()
                 )
-                
-                # Remover botões
-                self.clear_items()
-                await interaction.message.edit(embed=embed_aprovado, view=self)
-                
-                # Adicionar view final
-                finalizado_view = SetFinalizadoView(self.fivem_id, self.game_nick, self.user_id)
-                await interaction.channel.send("**Controles Finais:**", view=finalizado_view)
-                
-                # Confirmação
-                await interaction.followup.send(
-                    f"✅ Set de {member.mention} aprovado!\n"
-                    f"• Nickname: `{novo_nick}`\n"
-                    f"• Cargo: 𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨\n"
-                    f"• Visitante: Removido",
-                    ephemeral=True
-                )
-                
-                # DM para o usuário
-                try:
-                    embed_dm = discord.Embed(
-                        title="✅ SEU SET FOI APROVADO!",
-                        description=(
-                            f"Parabéns! Seu pedido de set foi aprovado por {interaction.user.mention}\n\n"
-                            f"**📋 Detalhes:**\n"
-                            f"• **Nickname:** `{novo_nick}`\n"
-                            f"• **ID Fivem:** `{self.fivem_id}`\n"
-                            f"• **Cargo:** 𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨\n\n"
-                            f"🎮 Bem-vindo ao servidor!"
-                        ),
-                        color=discord.Color.green()
-                    )
-                    await member.send(embed=embed_dm)
-                except:
-                    pass  # Se não conseguir DM
-                    
-            else:
-                await interaction.followup.send(
-                    f"❌ Usuário não encontrado! ID: `{self.user_id}`",
-                    ephemeral=True
-                )
+                await member.send(embed=embed_dm)
+            except:
+                pass
                 
         except discord.Forbidden as e:
             print(f"❌ Erro de permissão: {e}")
             await interaction.followup.send(
                 "❌ **ERRO DE PERMISSÃO!**\n\n"
-                "Verifique se o bot tem estas permissões:\n"
-                "• **Gerenciar Apelidos**\n"
-                "• **Gerenciar Cargos**\n"
-                "• O cargo do bot deve estar ACIMA dos cargos que ele vai gerenciar!",
+                "Verifique:\n"
+                "1. O bot tem 'Gerenciar Apelidos' e 'Gerenciar Cargos'\n"
+                "2. O cargo do bot está ACIMA dos cargos que ele gerencia",
                 ephemeral=True
             )
         except Exception as e:
@@ -228,7 +222,6 @@ class SetStaffView(ui.View):
         try:
             mensagem_pedido = interaction.message
             
-            # Embed de recusa
             embed_recusado = discord.Embed(
                 title="❌ SET RECUSADO",
                 description=(
@@ -241,10 +234,7 @@ class SetStaffView(ui.View):
                 color=discord.Color.red()
             )
             
-            # Envia aviso de recusa
             await interaction.channel.send(embed=embed_recusado)
-            
-            # Exclui a mensagem do pedido
             await mensagem_pedido.delete()
             
             await interaction.followup.send("✅ Set recusado e mensagem excluída!", ephemeral=True)
