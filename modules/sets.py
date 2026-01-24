@@ -5,6 +5,20 @@ import asyncio
 from datetime import datetime
 import re
 
+# ========== CONFIGURAÇÃO ==========
+
+# Cargos que podem aprovar sets (staff)
+STAFF_ROLES = [
+    "00", 
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", 
+    "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", 
+    "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", 
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞",
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", 
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", 
+    "𝐌𝐨𝐝𝐞𝐫"
+]
+
 # ========== CLASSES DO SISTEMA DE SET ==========
 
 class SetFinalizadoView(ui.View):
@@ -17,8 +31,7 @@ class SetFinalizadoView(ui.View):
     
     @ui.button(label="✅ Concluir Pedido", style=ButtonStyle.green, custom_id="concluir_set")
     async def concluir_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
+        if not any(role.name in STAFF_ROLES for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff!", ephemeral=True)
             return
         
@@ -36,15 +49,13 @@ class SetFinalizadoView(ui.View):
     
     @ui.button(label="🗑️ Excluir Pedido", style=ButtonStyle.red, custom_id="excluir_set")
     async def excluir_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
+        if not any(role.name in STAFF_ROLES for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff!", ephemeral=True)
             return
         
         await interaction.response.defer()
         
         try:
-            # 🔥 AGORA EXCLUI APENAS A MENSAGEM, NÃO O CANAL!
             mensagem_pedido = interaction.message
             
             embed = discord.Embed(
@@ -53,10 +64,7 @@ class SetFinalizadoView(ui.View):
                 color=discord.Color.red()
             )
             
-            # Envia aviso antes de excluir
             await interaction.channel.send(embed=embed)
-            
-            # Exclui a mensagem do pedido
             await mensagem_pedido.delete()
             
             print(f"✅ Pedido excluído (mensagem) - ID Fivem: {self.fivem_id}")
@@ -77,14 +85,42 @@ class SetStaffView(ui.View):
     
     @ui.button(label="✅ Aprovar Set", style=ButtonStyle.green, custom_id="aprovar_set", row=0)
     async def aprovar_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
+        # Verificar se é staff
+        if not any(role.name in STAFF_ROLES for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff pode aprovar!", ephemeral=True)
             return
         
         await interaction.response.defer()
         
         try:
+            # VERIFICAR PERMISSÕES DO BOT PRIMEIRO
+            bot_member = interaction.guild.me
+            
+            # Verificar permissão para gerenciar nicknames
+            if not bot_member.guild_permissions.manage_nicknames:
+                embed_erro = discord.Embed(
+                    title="❌ PERMISSÃO NEGADA",
+                    description=(
+                        "O bot precisa da permissão **'Gerenciar Apelidos'**!\n\n"
+                        "**Como resolver:**\n"
+                        "1. Vá em **Configurações do Servidor**\n"
+                        "2. **Cargos do Bot**\n"
+                        "3. Ative **'Gerenciar Apelidos'** e **'Gerenciar Cargos'**\n"
+                        "4. Salve as alterações"
+                    ),
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed_erro, ephemeral=True)
+                return
+            
+            # Verificar permissão para gerenciar cargos
+            if not bot_member.guild_permissions.manage_roles:
+                await interaction.followup.send(
+                    "❌ O bot precisa da permissão **'Gerenciar Cargos'**!",
+                    ephemeral=True
+                )
+                return
+            
             # Buscar membro no servidor
             member = interaction.guild.get_member(self.user_id)
             
@@ -94,16 +130,17 @@ class SetStaffView(ui.View):
                 if len(novo_nick) > 32:
                     novo_nick = f"AV | {self.game_nick[:15]} - {self.fivem_id[:10]}"
                 
-                # Mudar nickname
+                # 1. Mudar nickname
                 await member.edit(nick=novo_nick)
+                print(f"✅ Nickname alterado para: {novo_nick}")
                 
-                # Remover cargo de visitante se existir
+                # 2. Remover cargo de visitante se existir
                 visitante_role = discord.utils.get(interaction.guild.roles, name="𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞")
                 if visitante_role and visitante_role in member.roles:
                     await member.remove_roles(visitante_role)
                     print(f"✅ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' removido de {member.name}")
                 
-                # Dar cargo de membro
+                # 3. Dar cargo de membro
                 membro_role = discord.utils.get(interaction.guild.roles, name="𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨")
                 if membro_role:
                     await member.add_roles(membro_role)
@@ -166,22 +203,28 @@ class SetStaffView(ui.View):
                     ephemeral=True
                 )
                 
-        except discord.Forbidden:
-            await interaction.followup.send("❌ Sem permissão para alterar nickname ou cargos!", ephemeral=True)
+        except discord.Forbidden as e:
+            print(f"❌ Erro de permissão: {e}")
+            await interaction.followup.send(
+                "❌ **ERRO DE PERMISSÃO!**\n\n"
+                "Verifique se o bot tem estas permissões:\n"
+                "• **Gerenciar Apelidos**\n"
+                "• **Gerenciar Cargos**\n"
+                "• O cargo do bot deve estar ACIMA dos cargos que ele vai gerenciar!",
+                ephemeral=True
+            )
         except Exception as e:
-            await interaction.followup.send(f"❌ Erro: {e}", ephemeral=True)
-            print(f"❌ Erro ao aprovar set: {e}")
+            print(f"❌ Erro ao aprovar set: {type(e).__name__}: {e}")
+            await interaction.followup.send(f"❌ Erro: {type(e).__name__}: {e}", ephemeral=True)
     
     @ui.button(label="❌ Recusar Set", style=ButtonStyle.red, custom_id="recusar_set", row=0)
     async def recusar_set(self, interaction: discord.Interaction, button: ui.Button):
-        staff_roles = ["00", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
-        if not any(role.name in staff_roles for role in interaction.user.roles):
+        if not any(role.name in STAFF_ROLES for role in interaction.user.roles):
             await interaction.response.send_message("❌ Apenas staff pode recusar!", ephemeral=True)
             return
         
         await interaction.response.defer()
         
-        # 🔥 AGORA APENAS EXCLUI A MENSAGEM DO PEDIDO
         try:
             mensagem_pedido = interaction.message
             
@@ -201,7 +244,7 @@ class SetStaffView(ui.View):
             # Envia aviso de recusa
             await interaction.channel.send(embed=embed_recusado)
             
-            # 🔥 EXCLUI APENAS A MENSAGEM DO PEDIDO
+            # Exclui a mensagem do pedido
             await mensagem_pedido.delete()
             
             await interaction.followup.send("✅ Set recusado e mensagem excluída!", ephemeral=True)
