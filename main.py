@@ -68,12 +68,12 @@ async def on_member_join(member: discord.Member):
         
         # 3. Enviar mensagem de boas-vindas (opcional)
         try:
-            canal_boas_vindas = discord.utils.get(member.guild.text_channels, name="geral")
-            if not canal_boas_vindas:
+            🚪entrada = discord.utils.get(member.guild.text_channels, name="geral")
+            if not 🚪entrada:
                 # Tenta encontrar qualquer canal que o bot possa enviar mensagem
                 for channel in member.guild.text_channels:
                     if channel.permissions_for(member.guild.me).send_messages:
-                        canal_boas_vindas = channel
+                        🚪entrada = channel
                         break
             
             if canal_boas_vindas:
@@ -81,18 +81,17 @@ async def on_member_join(member: discord.Member):
                     title=f"👋 Bem-vindo(a), {member.name}!",
                     description=(
                         f"Seja muito bem-vindo(a) ao **{member.guild.name}**!\n\n"
-                        f"📋 **Seu cargo atual:** {visitante_role.mention}\n"
                         f"👤 **Total de membros:** {member.guild.member_count}\n\n"
-                        f"💡 **Para ganhar seu set personalizado:**\n"
-                        f"1. Vá para #aprovamento\n"
+                        f"💡 **Para fazer seu set:**\n"
+                        f"1. Vá para #Pedir set!\n"
                         f"2. Clique em 'Peça seu Set!'\n"
                         f"3. Digite seu ID do FiveM\n"
-                        f"4. Aguarde aprovação da staff!"
+                        f"4. E aguarde aprovação da staff!"
                     ),
                     color=discord.Color.green()
                 )
                 embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
-                embed.set_footer(text="Sistema automático de boas-vindas")
+                embed.set_footer(text="Seja Bem-vindo!, Esperamos que goste!")
                 
                 await canal_boas_vindas.send(embed=embed)
                 
