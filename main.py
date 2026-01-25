@@ -68,15 +68,21 @@ async def on_member_join(member: discord.Member):
         
         # 3. Enviar mensagem de boas-vindas (opcional)
         try:
-            🚪entrada = discord.utils.get(member.guild.text_channels, name="geral")
-            if not 🚪entrada:
+            # Correção aqui: usar nome correto da variável e buscar canal
+            canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪entrada")
+            
+            if not canal_entrada:
+                # Se não encontrar "🚪entrada", tenta "entrada" sem emoji
+                canal_entrada = discord.utils.get(member.guild.text_channels, name="entrada")
+            
+            if not canal_entrada:
                 # Tenta encontrar qualquer canal que o bot possa enviar mensagem
                 for channel in member.guild.text_channels:
                     if channel.permissions_for(member.guild.me).send_messages:
-                        🚪entrada = channel
+                        canal_entrada = channel
                         break
             
-            if canal_boas_vindas:
+            if canal_entrada:
                 embed = discord.Embed(
                     title=f"👋 Bem-vindo(a), {member.name}!",
                     description=(
@@ -93,7 +99,8 @@ async def on_member_join(member: discord.Member):
                 embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
                 embed.set_footer(text="Seja Bem-vindo!, Esperamos que goste!")
                 
-                await canal_boas_vindas.send(embed=embed)
+                await canal_entrada.send(embed=embed)
+                print(f"✅ Mensagem de boas-vindas enviada em #{canal_entrada.name}")
                 
         except Exception as e:
             print(f"⚠️ Não foi possível enviar mensagem de boas-vindas: {e}")
@@ -313,6 +320,40 @@ async def setup_all(ctx):
         pass
     
     await ctx.send("✅ Todos os sistemas foram configurados!")
+
+@bot.command()
+async def test_entrada(ctx):
+    """Testa o sistema de boas-vindas (apenas ADM)"""
+    if not ctx.author.guild_permissions.administrator:
+        return await ctx.send("❌ Apenas administradores podem usar este comando!")
+    
+    # Simular um membro entrando
+    await ctx.send("🔧 Testando sistema de boas-vindas...")
+    
+    # Buscar canal de entrada
+    canal_entrada = discord.utils.get(ctx.guild.text_channels, name="🚪entrada")
+    
+    if not canal_entrada:
+        canal_entrada = discord.utils.get(ctx.guild.text_channels, name="entrada")
+    
+    if canal_entrada:
+        await ctx.send(f"✅ Canal de entrada encontrado: {canal_entrada.mention}")
+        
+        # Testar mensagem
+        embed = discord.Embed(
+            title="👋 Teste de Boas-vindas",
+            description="Esta é uma mensagem de teste do sistema de boas-vindas!",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="Canal", value=canal_entrada.mention, inline=True)
+        embed.add_field(name="Status", value="✅ Funcionando", inline=True)
+        
+        await canal_entrada.send(embed=embed)
+        await ctx.send("✅ Mensagem de teste enviada com sucesso!")
+    else:
+        await ctx.send("❌ Canal '🚪entrada' não encontrado! Canais disponíveis:")
+        for channel in ctx.guild.text_channels:
+            await ctx.send(f"• #{channel.name}")
 
 # ==================== INICIALIZAÇÃO ====================
 if __name__ == '__main__':
