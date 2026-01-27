@@ -11,8 +11,17 @@ print("=" * 50)
 print("🤖 BOT DE CARGO AUTOMÁTICO 24/7")
 print("=" * 50)
 
-# ==================== SERVIDOR WEB PARA UPTIMEROBOT ====================
-app = Flask('')
+# ==================== CORREÇÃO DO FLASK ====================
+# CORREÇÃO: NÃO usar Flask('') - usar Flask(__name__) e configurar corretamente
+app = Flask(__name__)
+
+# CORREÇÃO: Desabilitar debug no Render
+app.config['DEBUG'] = False
+
+# CORREÇÃO: Suprimir logs do Flask que causam erro
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 @app.route('/')
 def home():
@@ -65,17 +74,28 @@ def health():
 def ping():
     return "pong", 200
 
+# CORREÇÃO: Função run_flask modificada
 def run_flask():
-    app.run(host='0.0.0.0', port=8080)
+    try:
+        print("🌐 Tentando iniciar Flask na porta 8080...")
+        from waitress import serve
+        serve(app, host='0.0.0.0', port=8080)
+    except ImportError:
+        # Se waitress não estiver instalado, usar o servidor de desenvolvimento
+        print("⚠️ Waitress não instalado, usando servidor de desenvolvimento")
+        app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
 
 def start_web_server():
     print("🌐 Iniciando servidor web na porta 8080...")
     t = Thread(target=run_flask, daemon=True)
     t.start()
+    # Dar tempo para o Flask iniciar
+    import time
+    time.sleep(2)
     print("✅ Servidor web iniciado!")
     print("📡 URLs para UptimeRobot:")
-    print("   • http://localhost:8080/health")
-    print("   • http://localhost:8080/ping")
+    print("   • /health - Para health check")
+    print("   • /ping - Para ping simples")
 
 # ==================== CONFIGURAÇÃO DO BOT ====================
 
@@ -198,7 +218,7 @@ async def status(ctx):
     embed.add_field(name="Ping", value=f"{round(bot.latency * 1000)}ms", inline=True)
     
     # Verificar configuração
-    cargo = discord.utils.get(ctx.guild.roles, name="𝗩𝗶𝘀𝗶𝘁𝗮𝗻𝘁𝗲")
+    cargo = discord.utils.get(ctx.guild.roles, name="𝗩𝗶𝘀𝗶𝘁𝗮𝗧𝗲")
     if cargo:
         embed.add_field(name="Cargo encontrado", value="✅ Sim", inline=True)
     else:
@@ -211,10 +231,7 @@ async def status(ctx):
 # ==================== INICIAR TUDO ====================
 
 if __name__ == '__main__':
-    # Iniciar servidor web primeiro
-    start_web_server()
-    
-    # Verificar token
+    # Verificar token PRIMEIRO
     TOKEN = os.getenv('DISCORD_TOKEN')
     
     if not TOKEN:
@@ -226,6 +243,14 @@ if __name__ == '__main__':
         sys.exit(1)
     
     print(f"\n✅ Token encontrado")
+    
+    # CORREÇÃO: Iniciar servidor web com tratamento de erro
+    try:
+        start_web_server()
+    except Exception as e:
+        print(f"⚠️ Erro ao iniciar servidor web: {e}")
+        print("💡 Continuando apenas com o bot...")
+    
     print("🔗 Conectando ao Discord...")
     
     try:
@@ -233,4 +258,4 @@ if __name__ == '__main__':
     except discord.LoginFailure:
         print("❌ Token inválido!")
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro ao iniciar bot: {e}")
