@@ -1,22 +1,22 @@
-from flask import Flask
-from threading import Thread
+from datetime import datetime
 import discord
 from discord.ext import commands
 import os
 import sys
 import asyncio
+from flask import Flask
+from threading import Thread
 
 # ==================== KEEP-ALIVE SERVER ====================
 try:
-    from flask import Flask
     app = Flask(__name__)
     
     @app.route('/')
     def home():
-        status = "🟢 ONLINE" if bot.is_ready() else "🟡 CONECTANDO"
+        from datetime import datetime
         return f"""
         <html>
-        <head><title>🤖 Bot Simples</title>
+        <head><title>🤖 Bot Discord</title>
         <meta charset="UTF-8">
         <style>
             body {{font-family: Arial; text-align: center; padding: 20px; 
@@ -27,9 +27,9 @@ try:
         </head>
         <body>
             <div class="container">
-                <h1>🤖 Bot Simples</h1>
-                <div class="status">{status}</div>
-                <p>Cargo Automático + Envio de Mensagens</p>
+                <h1>🤖 Bot Discord</h1>
+                <div class="status">🟢 ONLINE</div>
+                <p>Sistema de Cargos Automáticos</p>
                 <p><small>{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</small></p>
             </div>
         </body>
@@ -40,20 +40,24 @@ try:
     def health():
         return "OK", 200
     
-    def run_web_server():
-        app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
-    
-    web_thread = Thread(target=run_web_server, daemon=True)
-    web_thread.start()
-    print("✅ Servidor web iniciado na porta 8080")
-    
+    def keep_alive():
+        """Inicia servidor web em thread separada"""
+        def run():
+            app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
+        
+        t = Thread(target=run, daemon=True)
+        t.start()
+        print("✅ Servidor web iniciado na porta 8080")
+        
 except ImportError:
     print("⚠️ Flask não encontrado. Servidor web não será iniciado.")
+    def keep_alive():
+        pass
 
 # ==================== BOT DISCORD ====================
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True  # IMPORTANTE para tickets/sets e eventos de membro
+intents.members = True
 intents.guilds = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -65,7 +69,7 @@ async def on_member_join(member: discord.Member):
     print(f"👤 {member.name} entrou no servidor!")
     
     try:
-        # 1. Buscar cargo "𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
+        # Buscar cargo "𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
         visitante_role = discord.utils.get(member.guild.roles, name="𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞")
         
         if not visitante_role:
@@ -86,21 +90,18 @@ async def on_member_join(member: discord.Member):
                 print(f"❌ Erro ao criar cargo: {e}")
                 return
                 
-        # 2. Dar o cargo ao membro
+        # Dar o cargo ao membro
         await member.add_roles(visitante_role)
         print(f"✅ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' atribuído a {member.name}")
         
-        # 3. Enviar mensagem de boas-vindas (opcional)
+        # Enviar mensagem de boas-vindas
         try:
-            # Correção aqui: usar nome correto da variável e buscar canal
             canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪entrada")
             
             if not canal_entrada:
-                # Se não encontrar "🚪entrada", tenta "entrada" sem emoji
                 canal_entrada = discord.utils.get(member.guild.text_channels, name="entrada")
             
             if not canal_entrada:
-                # Tenta encontrar qualquer canal que o bot possa enviar mensagem
                 for channel in member.guild.text_channels:
                     if channel.permissions_for(member.guild.me).send_messages:
                         canal_entrada = channel
@@ -129,7 +130,6 @@ async def on_member_join(member: discord.Member):
         except Exception as e:
             print(f"⚠️ Não foi possível enviar mensagem de boas-vindas: {e}")
         
-        # 4. Log no console
         print(f"✅ {member.name} recebeu cargo automático")
         
     except discord.Forbidden:
@@ -137,25 +137,13 @@ async def on_member_join(member: discord.Member):
     except Exception as e:
         print(f"❌ Erro no sistema de boas-vindas: {type(e).__name__}: {e}")
 
-# ==================== CARREGAR SEUS MÓDULOS ====================
+# ==================== CARREGAR MÓDULOS ====================
 async def load_cogs():
-    """Carrega seus módulos (tickets, sets, etc.)"""
+    """Carrega módulos adicionais"""
     print("=" * 50)
-    print("🔄 INICIANDO CARREGAMENTO DE MÓDULOS...")
+    print("🔄 CARREGANDO MÓDULOS...")
     
-    # Verificar se a pasta modules existe
-    if not os.path.exists('modules'):
-        print("📁 Criando pasta 'modules'...")
-        os.makedirs('modules')
-    
-    print("📁 Conteúdo da pasta 'modules':")
-    try:
-        for file in os.listdir('modules'):
-            print(f"   📄 {file}")
-    except:
-        print("   ❌ Não foi possível listar arquivos")
-    
-    # Lista dos SEUS módulos
+    # Lista de módulos
     cogs = [
         'modules.tickets',
         'modules.sets',
@@ -164,23 +152,19 @@ async def load_cogs():
     
     carregados = 0
     for cog in cogs:
-        print(f"\n🔍 Tentando carregar: {cog}")
+        print(f"\n🔍 Tentando: {cog}")
         try:
             await bot.load_extension(cog)
-            print(f"✅ SUCESSO: Módulo '{cog}' carregado!")
+            print(f"✅ '{cog}' carregado!")
             carregados += 1
-        except ModuleNotFoundError as e:
-            print(f"❌ ERRO: Módulo não encontrado - {e}")
+        except ModuleNotFoundError:
+            print(f"⚠️ Módulo não encontrado")
         except ImportError as e:
-            print(f"❌ ERRO: Importação falhou - {e}")
-        except commands.ExtensionNotFound:
-            print(f"❌ ERRO: Extensão '{cog}' não encontrada")
-        except commands.ExtensionFailed as e:
-            print(f"❌ ERRO: Extensão falhou - {e.__cause__}")
+            print(f"❌ Erro de importação: {e}")
         except Exception as e:
-            print(f"❌ ERRO INESPERADO: {type(e).__name__}: {e}")
+            print(f"❌ Erro: {type(e).__name__}: {e}")
     
-    print(f"\n📊 Resumo: {carregados}/{len(cogs)} módulos carregados")
+    print(f"\n📊 {carregados}/{len(cogs)} módulos carregados")
     print("=" * 50)
     return carregados > 0
 
@@ -191,9 +175,8 @@ async def on_ready():
     print(f'🆔 ID: {bot.user.id}')
     print(f'📡 Ping: {round(bot.latency * 1000)}ms')
     print(f'🏠 Servidores: {len(bot.guilds)}')
-    print('🚀 Bot pronto para uso!')
+    print('🚀 Bot pronto!')
     
-    # Atividade personalizada
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
@@ -201,17 +184,16 @@ async def on_ready():
         )
     )
     
-    # Sincronizar comandos slash (se usar)
     try:
         synced = await bot.tree.sync()
         print(f"✅ {len(synced)} comandos slash sincronizados")
-    except Exception as e:
-        print(f"⚠️  Não foi possível sincronizar comandos slash: {e}")
+    except:
+        print("⚠️ Sem comandos slash para sincronizar")
 
-# ==================== COMANDOS BÁSICOS ====================
+# ==================== COMANDOS ====================
 @bot.command()
 async def ping(ctx):
-    """Responde com a latência do bot"""
+    """Mostra latência do bot"""
     latency = round(bot.latency * 1000)
     embed = discord.Embed(
         title="🏓 Pong!",
@@ -221,68 +203,10 @@ async def ping(ctx):
     await ctx.send(embed=embed)
 
 @bot.command()
-async def reload(ctx):
-    """Recarrega todos os módulos (apenas dono)"""
-    if ctx.author.id != 1213819385576300595:  
-        return await ctx.send("❌ Apenas o dono pode usar este comando!")
-    
-    await load_cogs()
-    await ctx.send("✅ Módulos recarregados!")
-
-@bot.command()
-async def perms(ctx):
-    """Verifica permissões do bot no servidor"""
-    perms = ctx.guild.me.guild_permissions
-    
-    embed = discord.Embed(
-        title="🔐 Permissões do Bot",
-        description=f"Verificando permissões em {ctx.guild.name}",
-        color=discord.Color.blue()
-    )
-    
-    # Permissões importantes
-    perms_importantes = [
-        ("👑 Gerenciar Cargos", perms.manage_roles, "Para dar cargo automático"),
-        ("🏷️ Gerenciar Apelidos", perms.manage_nicknames, "Para mudar nicknames"),
-        ("👥 Gerenciar Membros", perms.manage_nicknames, "Para evento on_member_join"),
-        ("📁 Gerenciar Canais", perms.manage_channels, "Para tickets"),
-        ("📝 Gerenciar Mensagens", perms.manage_messages, "Para sistemas"),
-        ("👀 Ver Canais", perms.view_channel, "Básico"),
-        ("💬 Enviar Mensagens", perms.send_messages, "Básico"),
-        ("📜 Ler Histórico", perms.read_message_history, "Para tickets"),
-    ]
-    
-    for name, has_perm, desc in perms_importantes:
-        status = "✅" if has_perm else "❌"
-        embed.add_field(
-            name=f"{status} {name}",
-            value=desc,
-            inline=False
-        )
-    
-    # Verificar posição do cargo do bot
-    bot_role = ctx.guild.me.top_role
-    embed.add_field(
-        name="📊 Posição do Cargo do Bot",
-        value=f"**Cargo:** `{bot_role.name}`\n**Posição:** {bot_role.position}/{len(ctx.guild.roles)}\n\n⚠️ **O cargo do bot deve estar ACIMA dos cargos que ele gerencia!**",
-        inline=False
-    )
-    
-    # Verificar intents
-    embed.add_field(
-        name="🔧 Intents Ativos",
-        value=f"• Members Intent: {'✅' if bot.intents.members else '❌'}\n• Message Content: {'✅' if bot.intents.message_content else '❌'}",
-        inline=False
-    )
-    
-    await ctx.send(embed=embed)
-
-@bot.command()
 async def status(ctx):
-    """Mostra status completo do bot"""
+    """Mostra status do bot"""
     embed = discord.Embed(
         title="🤖 Status do Bot",
-        description=f"Informações de {bot.user.name}",
         color=discord.Color.green()
     )
     
@@ -291,132 +215,87 @@ async def status(ctx):
     embed.add_field(name="📡 Ping", value=f"{round(bot.latency * 1000)}ms", inline=True)
     embed.add_field(name="🏠 Servidores", value=len(bot.guilds), inline=True)
     
-    # Contar membros totais
     total_members = sum(len(g.members) for g in bot.guilds)
-    embed.add_field(name="👤 Membros Totais", value=total_members, inline=True)
+    embed.add_field(name="👤 Membros", value=total_members, inline=True)
     
-    # Módulos carregados
     loaded_cogs = list(bot.cogs.keys())
     embed.add_field(
-        name="📦 Módulos Ativos", 
-        value="\n".join([f"• {cog}" for cog in loaded_cogs]) if loaded_cogs else "Nenhum módulo carregado",
+        name="📦 Módulos", 
+        value="\n".join([f"• {cog}" for cog in loaded_cogs]) if loaded_cogs else "Nenhum",
         inline=False
     )
     
-    # Uptime (aproximado)
-    embed.set_footer(text="Sistema Hospício APP • Online 24/7")
+    embed.set_footer(text="Online 24/7 com Keep-Alive")
     
     await ctx.send(embed=embed)
 
 @bot.command()
-async def setup_all(ctx):
-    """Configura todos os sistemas de uma vez (apenas ADM)"""
-    if not ctx.author.guild_permissions.administrator:
-        return await ctx.send("❌ Apenas administradores podem usar este comando!")
-    
-    await ctx.send("🔄 Configurando todos os sistemas...")
-    
-    # 1. Setup Cargos
-    try:
-        cargos_cog = bot.get_cog("CargosCog")
-        if cargos_cog:
-            await ctx.invoke(bot.get_command("setup_cargos"))
-            await asyncio.sleep(1)
-    except:
-        pass
-    
-    # 2. Setup Set
-    try:
-        sets_cog = bot.get_cog("SetsCog")
-        if sets_cog:
-            await ctx.invoke(bot.get_command("setup_set"))
-            await asyncio.sleep(1)
-    except:
-        pass
-    
-    # 3. Setup Tickets
-    try:
-        tickets_cog = bot.get_cog("TicketsCog")
-        if tickets_cog:
-            await ctx.invoke(bot.get_command("setup_tickets"))
-            await asyncio.sleep(1)
-    except:
-        pass
-    
-    await ctx.send("✅ Todos os sistemas foram configurados!")
+@commands.has_permissions(administrator=True)
+async def reload(ctx):
+    """Recarrega módulos"""
+    await load_cogs()
+    await ctx.send("✅ Módulos recarregados!")
 
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def test_entrada(ctx):
-    """Testa o sistema de boas-vindas (apenas ADM)"""
-    if not ctx.author.guild_permissions.administrator:
-        return await ctx.send("❌ Apenas administradores podem usar este comando!")
-    
-    # Simular um membro entrando
+    """Testa sistema de boas-vindas"""
     await ctx.send("🔧 Testando sistema de boas-vindas...")
     
-    # Buscar canal de entrada
     canal_entrada = discord.utils.get(ctx.guild.text_channels, name="🚪entrada")
     
     if not canal_entrada:
         canal_entrada = discord.utils.get(ctx.guild.text_channels, name="entrada")
     
     if canal_entrada:
-        await ctx.send(f"✅ Canal de entrada encontrado: {canal_entrada.mention}")
-        
-        # Testar mensagem
         embed = discord.Embed(
             title="👋 Teste de Boas-vindas",
-            description="Esta é uma mensagem de teste do sistema de boas-vindas!",
+            description="Esta é uma mensagem de teste!",
             color=discord.Color.blue()
         )
-        embed.add_field(name="Canal", value=canal_entrada.mention, inline=True)
-        embed.add_field(name="Status", value="✅ Funcionando", inline=True)
-        
         await canal_entrada.send(embed=embed)
-        await ctx.send("✅ Mensagem de teste enviada com sucesso!")
+        await ctx.send("✅ Teste enviado!")
     else:
-        await ctx.send("❌ Canal '🚪entrada' não encontrado! Canais disponíveis:")
-        for channel in ctx.guild.text_channels:
-            await ctx.send(f"• #{channel.name}")
+        await ctx.send("❌ Canal de entrada não encontrado")
+
+# ==================== TRATAMENTO DE ERROS ====================
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send(f"❌ Comando não encontrado. Use `!help`", delete_after=5)
+    elif isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ Sem permissão!", delete_after=5)
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f"❌ Argumentos faltando! Use: `!{ctx.command.name} {ctx.command.signature}`", delete_after=5)
+    else:
+        print(f"Erro: {error}")
 
 # ==================== INICIALIZAÇÃO ====================
-if __name__ == '__main__':
+async def main():
+    """Função principal"""
     print("🚀 Iniciando bot Discord...")
     print("=" * 50)
     
-    # Verificar token
     TOKEN = os.getenv('DISCORD_TOKEN')
     if not TOKEN:
-        print("❌ ERRO: DISCORD_TOKEN não encontrado!")
-        print("💡 Configure em: Render Dashboard → Environment → Add Variable")
-        print("💡 Ou crie um arquivo .env com: DISCORD_TOKEN=seu_token")
+        print("❌ DISCORD_TOKEN não encontrado!")
+        print("Configure no Render: Environment → DISCORD_TOKEN")
         sys.exit(1)
     
-    print("✅ Token encontrado")
-    print(f"🤖 Nome do Bot: {bot.user if hasattr(bot, 'user') else 'Carregando...'}")
-    
-    # Iniciar keep-alive
+    # Iniciar servidor web
     keep_alive()
     
-    # Carregar SEUS módulos antes de iniciar
-    async def startup():
-        success = await load_cogs()
-        if not success:
-            print("⚠️  Alguns módulos não foram carregados, continuando...")
-    
-    # Executar carregamento
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(startup())
+    # Carregar módulos
+    await load_cogs()
     
     # Iniciar bot
+    print("🔗 Conectando ao Discord...")
+    await bot.start(TOKEN)
+
+if __name__ == '__main__':
     try:
-        print("🔗 Conectando ao Discord...")
-        bot.run(TOKEN)
-    except discord.LoginFailure:
-        print("❌ ERRO: Token inválido ou expirado!")
-        print("💡 Gere um novo token em: https://discord.com/developers/applications")
+        asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n👋 Bot encerrado pelo usuário")
+        print("\n👋 Bot encerrado")
     except Exception as e:
-        print(f"❌ Erro inesperado: {type(e).__name__}: {e}")
+        print(f"❌ Erro: {e}")
