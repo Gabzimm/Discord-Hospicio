@@ -7,7 +7,6 @@ import sys
 import asyncio
 
 # ==================== KEEP-ALIVE SERVER ====================
-# ========== SERVIDOR WEB PARA UPTIMEROBOT ==========
 try:
     from flask import Flask
     app = Flask(__name__)
