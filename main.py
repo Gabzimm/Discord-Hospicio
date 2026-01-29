@@ -1,706 +1,398 @@
-"""
-🤖 BOT SIMPLES DE CARGO AUTOMÁTICO + ENVIO DE MENSAGENS
-Funcionalidades:
-1. Atribui cargo "𝗩𝗶𝘀𝗶𝘁𝗮𝗻𝘁𝗲" automaticamente
-2. Painel básico para envio de mensagens
-"""
-
+from flask import Flask
+from threading import Thread
+import discord
+from discord.ext import commands
 import os
 import sys
-import json
-from threading import Thread
-from datetime import datetime
+import asyncio
 
-# ========== CONFIGURAÇÃO DO BOT ==========
-print("=" * 50)
-print("🚀 INICIANDO BOT SIMPLES")
-print("=" * 50)
+# ==================== KEEP-ALIVE SERVER ====================
+app = Flask('')
 
-# Tentar importar discord.py
-try:
-    import discord
-    from discord.ext import commands
-    print("✅ discord.py importado com sucesso")
-except ImportError:
-    print("❌ discord.py não encontrado!")
-    print("💡 Instale com: pip install discord.py==2.3.2")
-    sys.exit(1)
+@app.route('/')
+def home():
+    return "✅ Bot Discord está online! Acesse /health para status."
 
-# Configurar intents
+@app.route('/health')
+def health():
+    return "🟢 ONLINE", 200
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.daemon = True
+    t.start()
+    print("🌐 Servidor keep-alive iniciado na porta 8080")
+
+# ==================== BOT DISCORD ====================
 intents = discord.Intents.default()
-intents.members = True
-intents.guilds = True
 intents.message_content = True
+intents.members = True  # IMPORTANTE para tickets/sets e eventos de membro
+intents.guilds = True
 
-# Criar bot
-bot = commands.Bot(
-    command_prefix='!',
-    intents=intents,
-    help_command=None
-)
+bot = commands.Bot(command_prefix='!', intents=intents)
 
-# ========== SERVIDOR WEB PARA UPTIMEROBOT ==========
-try:
-    from flask import Flask
-    app = Flask(__name__)
+# ==================== EVENTO DE ENTRADA DE MEMBRO ====================
+@bot.event
+async def on_member_join(member: discord.Member):
+    """Atribui cargo automático quando alguém entra"""
+    print(f"👤 {member.name} entrou no servidor!")
     
-    @app.route('/')
-    def home():
-        status = "🟢 ONLINE" if bot.is_ready() else "🟡 CONECTANDO"
-        return f"""
-        <html>
-        <head><title>🤖 Bot Simples</title>
-        <meta charset="UTF-8">
-        <style>
-            body {{font-family: Arial; text-align: center; padding: 20px; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;}}
-            .container {{background: rgba(0,0,0,0.8); padding: 30px; border-radius: 15px; max-width: 600px; margin: auto;}}
-            .status {{background: #28a745; padding: 15px; border-radius: 10px; margin: 20px 0;}}
-        </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🤖 Bot Simples</h1>
-                <div class="status">{status}</div>
-                <p>Cargo Automático + Envio de Mensagens</p>
-                <p><small>{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</small></p>
-            </div>
-        </body>
-        </html>
-        """
-    
-    @app.route('/health')
-    def health():
-        return "OK", 200
-    
-    def run_web_server():
-        app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
-    
-    web_thread = Thread(target=run_web_server, daemon=True)
-    web_thread.start()
-    print("✅ Servidor web iniciado na porta 8080")
-    
-except ImportError:
-    print("⚠️ Flask não encontrado. Servidor web não será iniciado.")
-
-# ========== SISTEMA DE MENSAGENS SIMPLES ==========
-
-def criar_embed_mensagem(titulo: str, conteudo: str, cor: str = "#3498db") -> discord.Embed:
-    """Cria embed para mensagem"""
     try:
-        color = discord.Color.from_str(cor)
-    except:
-        color = discord.Color.blue()
+        # 1. Buscar cargo "𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
+        visitante_role = discord.utils.get(member.guild.roles, name="𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞")
+        
+        if not visitante_role:
+            print("❌ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' não encontrado!")
+            
+            # Tentar criar automaticamente
+            try:
+                visitante_role = await member.guild.create_role(
+                    name="𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞",
+                    color=discord.Color.light_grey(),
+                    reason="Criado automaticamente pelo sistema de boas-vindas"
+                )
+                print(f"✅ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' criado automaticamente!")
+            except discord.Forbidden:
+                print("❌ Sem permissão para criar cargo!")
+                return
+            except Exception as e:
+                print(f"❌ Erro ao criar cargo: {e}")
+                return
+                
+        # 2. Dar o cargo ao membro
+        await member.add_roles(visitante_role)
+        print(f"✅ Cargo '𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞' atribuído a {member.name}")
+        
+        # 3. Enviar mensagem de boas-vindas (opcional)
+        try:
+            # Correção aqui: usar nome correto da variável e buscar canal
+            canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪entrada")
+            
+            if not canal_entrada:
+                # Se não encontrar "🚪entrada", tenta "entrada" sem emoji
+                canal_entrada = discord.utils.get(member.guild.text_channels, name="entrada")
+            
+            if not canal_entrada:
+                # Tenta encontrar qualquer canal que o bot possa enviar mensagem
+                for channel in member.guild.text_channels:
+                    if channel.permissions_for(member.guild.me).send_messages:
+                        canal_entrada = channel
+                        break
+            
+            if canal_entrada:
+                embed = discord.Embed(
+                    title=f"👋 Bem-vindo(a), {member.name}!",
+                    description=(
+                        f"Seja muito bem-vindo(a) ao **{member.guild.name}**!\n\n"
+                        f"👤 **Total de membros:** {member.guild.member_count}\n\n"
+                        f"💡 **Para fazer seu set:**\n"
+                        f"1. Vá para #Pedir set!\n"
+                        f"2. Clique em 'Peça seu Set!'\n"
+                        f"3. Digite seu ID do FiveM\n"
+                        f"4. E aguarde aprovação da staff!"
+                    ),
+                    color=discord.Color.green()
+                )
+                embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
+                embed.set_footer(text="Seja Bem-vindo!, Esperamos que goste!")
+                
+                await canal_entrada.send(embed=embed)
+                print(f"✅ Mensagem de boas-vindas enviada em #{canal_entrada.name}")
+                
+        except Exception as e:
+            print(f"⚠️ Não foi possível enviar mensagem de boas-vindas: {e}")
+        
+        # 4. Log no console
+        print(f"✅ {member.name} recebeu cargo automático")
+        
+    except discord.Forbidden:
+        print(f"❌ Sem permissão para adicionar cargos a {member.name}")
+    except Exception as e:
+        print(f"❌ Erro no sistema de boas-vindas: {type(e).__name__}: {e}")
+
+# ==================== CARREGAR SEUS MÓDULOS ====================
+async def load_cogs():
+    """Carrega seus módulos (tickets, sets, etc.)"""
+    print("=" * 50)
+    print("🔄 INICIANDO CARREGAMENTO DE MÓDULOS...")
     
-    embed = discord.Embed(
-        title=titulo,
-        description=conteudo,
-        color=color,
-        timestamp=datetime.now()
-    )
-    embed.set_footer(text="📢 Sistema de Mensagens")
-    return embed
+    # Verificar se a pasta modules existe
+    if not os.path.exists('modules'):
+        print("📁 Criando pasta 'modules'...")
+        os.makedirs('modules')
+    
+    print("📁 Conteúdo da pasta 'modules':")
+    try:
+        for file in os.listdir('modules'):
+            print(f"   📄 {file}")
+    except:
+        print("   ❌ Não foi possível listar arquivos")
+    
+    # Lista dos SEUS módulos
+    cogs = [
+        'modules.tickets',
+        'modules.sets',
+        'modules.cargos',
+    ]
+    
+    carregados = 0
+    for cog in cogs:
+        print(f"\n🔍 Tentando carregar: {cog}")
+        try:
+            await bot.load_extension(cog)
+            print(f"✅ SUCESSO: Módulo '{cog}' carregado!")
+            carregados += 1
+        except ModuleNotFoundError as e:
+            print(f"❌ ERRO: Módulo não encontrado - {e}")
+        except ImportError as e:
+            print(f"❌ ERRO: Importação falhou - {e}")
+        except commands.ExtensionNotFound:
+            print(f"❌ ERRO: Extensão '{cog}' não encontrada")
+        except commands.ExtensionFailed as e:
+            print(f"❌ ERRO: Extensão falhou - {e.__cause__}")
+        except Exception as e:
+            print(f"❌ ERRO INESPERADO: {type(e).__name__}: {e}")
+    
+    print(f"\n📊 Resumo: {carregados}/{len(cogs)} módulos carregados")
+    print("=" * 50)
+    return carregados > 0
 
-# ========== EVENTOS DO BOT ==========
-
+# ==================== EVENTOS ====================
 @bot.event
 async def on_ready():
-    """Quando o bot conecta ao Discord"""
-    print("=" * 50)
-    print(f"✅ BOT CONECTADO: {bot.user.name}")
-    print(f"🆔 ID: {bot.user.id}")
-    print(f"📡 Ping: {round(bot.latency * 1000)}ms")
-    print(f"🏠 Servidores conectados: {len(bot.guilds)}")
-    print("=" * 50)
+    print(f'✅ Bot logado como: {bot.user}')
+    print(f'🆔 ID: {bot.user.id}')
+    print(f'📡 Ping: {round(bot.latency * 1000)}ms')
+    print(f'🏠 Servidores: {len(bot.guilds)}')
+    print('🚀 Bot pronto para uso!')
     
-    # Configurar painel em cada servidor
-    for guild in bot.guilds:
-        await configurar_painel(guild)
-    
+    # Atividade personalizada
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name=f"👥 {sum(g.member_count for g in bot.guilds)} membros"
+            name=f"{len(bot.guilds)} servidor(es) | !help"
         )
     )
     
-    print("🎯 Bot pronto! (Cargo automático + Painel básico)")
-
-@bot.event
-async def on_member_join(member):
-    """
-    ATRIBUI CARGO AUTOMATICAMENTE QUANDO ALGUÉM ENTRA
-    """
-    print(f"\n{'='*50}")
-    print(f"👤 NOVO MEMBRO: {member.name}")
-    
+    # Sincronizar comandos slash (se usar)
     try:
-        cargo_nome = "𝗩𝗶𝘀𝗶𝘁𝗮𝗻𝘁𝗲"
-        cargo = discord.utils.get(member.guild.roles, name=cargo_nome)
-        
-        if not cargo:
-            print(f"⚠️ Cargo '{cargo_nome}' não encontrado. Criando...")
-            cargo = await member.guild.create_role(
-                name=cargo_nome,
-                color=discord.Color.light_grey(),
-                reason="Criado automaticamente pelo bot",
-                permissions=discord.Permissions.none()
-            )
-            print(f"✅ Cargo '{cargo_nome}' criado!")
-        
-        await member.add_roles(cargo)
-        print(f"✅ Cargo atribuído a {member.name}")
-        
+        synced = await bot.tree.sync()
+        print(f"✅ {len(synced)} comandos slash sincronizados")
     except Exception as e:
-        print(f"❌ Erro ao atribuir cargo: {e}")
-    
-    print(f"{'='*50}")
+        print(f"⚠️  Não foi possível sincronizar comandos slash: {e}")
 
-async def configurar_painel(guild: discord.Guild):
-    """Configura o painel no canal especificado"""
-    canal_painel = discord.utils.get(guild.text_channels, name="𝗪𝗮𝘃𝗲𝗫-𝗣𝗡𝗘𝗟_𝗠𝗦𝗚")
-    
-    if canal_painel:
-        # Limpar mensagens antigas do bot
-        try:
-            async for message in canal_painel.history(limit=10):
-                if message.author == bot.user:
-                    await message.delete()
-        except:
-            pass
-        
-        # Enviar novo painel
-        await enviar_painel_principal(canal_painel)
-        print(f"✅ Painel configurado em #{canal_painel.name}")
-    else:
-        print(f"⚠️ Canal '𝗪𝗮𝘃𝗲𝗫-𝗣𝗡𝗘𝗟_𝗠𝗦𝗚' não encontrado em {guild.name}")
-
-async def enviar_painel_principal(canal: discord.TextChannel):
-    """Envia o painel principal"""
+# ==================== COMANDOS BÁSICOS ====================
+@bot.command()
+async def ping(ctx):
+    """Responde com a latência do bot"""
+    latency = round(bot.latency * 1000)
     embed = discord.Embed(
-        title="📢 **PAINEL DE MENSAGENS SIMPLES**",
-        description=(
-            "**Sistema básico para envio de mensagens**\n\n"
-            "🎯 **Funcionalidades:**\n"
-            "• 📝 **Enviar mensagem** para canais\n"
-            "• 📋 **Templates** prontos para usar\n"
-            "• 👁️ **Pré-visualização** antes de enviar\n\n"
-            "**Clique nos botões abaixo:**"
-        ),
+        title="🏓 Pong!",
+        description=f"Latência: **{latency}ms**",
+        color=discord.Color.green()
+    )
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def reload(ctx):
+    """Recarrega todos os módulos (apenas dono)"""
+    if ctx.author.id != 1213819385576300595:  
+        return await ctx.send("❌ Apenas o dono pode usar este comando!")
+    
+    await load_cogs()
+    await ctx.send("✅ Módulos recarregados!")
+
+@bot.command()
+async def perms(ctx):
+    """Verifica permissões do bot no servidor"""
+    perms = ctx.guild.me.guild_permissions
+    
+    embed = discord.Embed(
+        title="🔐 Permissões do Bot",
+        description=f"Verificando permissões em {ctx.guild.name}",
         color=discord.Color.blue()
     )
     
+    # Permissões importantes
+    perms_importantes = [
+        ("👑 Gerenciar Cargos", perms.manage_roles, "Para dar cargo automático"),
+        ("🏷️ Gerenciar Apelidos", perms.manage_nicknames, "Para mudar nicknames"),
+        ("👥 Gerenciar Membros", perms.manage_nicknames, "Para evento on_member_join"),
+        ("📁 Gerenciar Canais", perms.manage_channels, "Para tickets"),
+        ("📝 Gerenciar Mensagens", perms.manage_messages, "Para sistemas"),
+        ("👀 Ver Canais", perms.view_channel, "Básico"),
+        ("💬 Enviar Mensagens", perms.send_messages, "Básico"),
+        ("📜 Ler Histórico", perms.read_message_history, "Para tickets"),
+    ]
+    
+    for name, has_perm, desc in perms_importantes:
+        status = "✅" if has_perm else "❌"
+        embed.add_field(
+            name=f"{status} {name}",
+            value=desc,
+            inline=False
+        )
+    
+    # Verificar posição do cargo do bot
+    bot_role = ctx.guild.me.top_role
     embed.add_field(
-        name="⚡ **Comandos Rápidos**",
-        value=(
-            "• `!enviar <canal> <mensagem>` - Envia mensagem\n"
-            "• `!painel` - Recarrega este painel\n"
-            "• `!ping` - Verifica status do bot"
-        ),
+        name="📊 Posição do Cargo do Bot",
+        value=f"**Cargo:** `{bot_role.name}`\n**Posição:** {bot_role.position}/{len(ctx.guild.roles)}\n\n⚠️ **O cargo do bot deve estar ACIMA dos cargos que ele gerencia!**",
         inline=False
     )
     
-    embed.set_footer(text="Bot Simples • Online 24/7")
-    
-    view = PainelSimplesView()
-    await canal.send(embed=embed, view=view)
-
-# ========== CLASSES DO PAINEL SIMPLES ==========
-
-class PainelSimplesView(discord.ui.View):
-    """View principal do painel simples"""
-    def __init__(self):
-        super().__init__(timeout=None)
-    
-    @discord.ui.button(label="📝 Enviar Mensagem", style=discord.ButtonStyle.primary, emoji="📝")
-    async def enviar_mensagem(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Abre modal para enviar mensagem"""
-        modal = ModalEnviarMensagemSimples()
-        await interaction.response.send_modal(modal)
-    
-    @discord.ui.button(label="📋 Templates", style=discord.ButtonStyle.green, emoji="📋")
-    async def usar_template(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Mostra templates disponíveis"""
-        embed = discord.Embed(
-            title="📋 **Templates Disponíveis**",
-            description="Selecione um template para usar:",
-            color=discord.Color.green()
-        )
-        
-        embed.add_field(
-            name="📢 Anúncio Importante",
-            value="`!template anuncio <titulo> <conteudo>`",
-            inline=False
-        )
-        
-        embed.add_field(
-            name="🎉 Evento",
-            value="`!template evento <nome> <descricao> <data>`",
-            inline=False
-        )
-        
-        embed.add_field(
-            name="⚠️ Aviso",
-            value="`!template aviso <mensagem>`",
-            inline=False
-        )
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    
-    @discord.ui.button(label="❓ Ajuda", style=discord.ButtonStyle.secondary, emoji="❓")
-    async def ajuda(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Mostra ajuda"""
-        await interaction.response.send_message(
-            "**❓ Ajuda - Painel Simples**\n\n"
-            "**Como usar:**\n"
-            "1. Clique em **📝 Enviar Mensagem**\n"
-            "2. Preencha o formulário\n"
-            "3. Selecione os canais\n"
-            "4. Confirme o envio\n\n"
-            "**Comandos:**\n"
-            "• `!enviar #canal mensagem`\n"
-            "• `!painel` - Recarrega painel\n"
-            "• `!ping` - Status do bot",
-            ephemeral=True
-        )
-
-class ModalEnviarMensagemSimples(discord.ui.Modal, title="📝 Enviar Mensagem"):
-    """Modal simples para enviar mensagem"""
-    
-    titulo = discord.ui.TextInput(
-        label="Título da mensagem:",
-        placeholder="Ex: Anúncio Importante",
-        required=True,
-        max_length=100
+    # Verificar intents
+    embed.add_field(
+        name="🔧 Intents Ativos",
+        value=f"• Members Intent: {'✅' if bot.intents.members else '❌'}\n• Message Content: {'✅' if bot.intents.message_content else '❌'}",
+        inline=False
     )
-    
-    conteudo = discord.ui.TextInput(
-        label="Conteúdo:",
-        placeholder="Digite sua mensagem aqui...",
-        style=discord.TextStyle.paragraph,
-        required=True,
-        max_length=2000
-    )
-    
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        
-        # Mostrar pré-visualização
-        embed = criar_embed_mensagem(
-            self.titulo.value,
-            self.conteudo.value
-        )
-        
-        # Criar view para selecionar canais
-        view = SelecaoCanaisSimplesView(self.titulo.value, self.conteudo.value)
-        
-        await interaction.followup.send(
-            "👁️ **Pré-visualização:**",
-            embed=embed,
-            view=view,
-            ephemeral=True
-        )
-
-class SelecaoCanaisSimplesView(discord.ui.View):
-    """View simples para selecionar canais"""
-    
-    def __init__(self, titulo: str, conteudo: str):
-        super().__init__()
-        self.titulo = titulo
-        self.conteudo = conteudo
-        self.canais_selecionados = []
-    
-    @discord.ui.select(
-        placeholder="📂 Selecione os canais...",
-        min_values=1,
-        max_values=10,  # Máximo 10 canais
-        options=[]  # Será preenchido dinamicamente
-    )
-    async def select_canais(self, interaction: discord.Interaction, select: discord.ui.Select):
-        """Quando canais são selecionados"""
-        self.canais_selecionados = [int(canal_id) for canal_id in select.values]
-        
-        # Criar botão de confirmação
-        view_confirmar = ViewConfirmarEnvio(
-            self.titulo,
-            self.conteudo,
-            self.canais_selecionados
-        )
-        
-        await interaction.response.edit_message(
-            content=f"✅ {len(self.canais_selecionados)} canal(is) selecionado(s)!",
-            view=view_confirmar
-        )
-    
-    async def on_timeout(self):
-        """Quando o view expira"""
-        pass
-
-class ViewConfirmarEnvio(discord.ui.View):
-    """View para confirmar envio"""
-    
-    def __init__(self, titulo: str, conteudo: str, canais_ids: list):
-        super().__init__()
-        self.titulo = titulo
-        self.conteudo = conteudo
-        self.canais_ids = canais_ids
-    
-    @discord.ui.button(label="✅ Confirmar Envio", style=discord.ButtonStyle.green, emoji="✅")
-    async def confirmar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Confirma e envia a mensagem"""
-        await interaction.response.defer(ephemeral=True)
-        
-        sucesso = 0
-        falhas = 0
-        
-        for canal_id in self.canais_ids:
-            try:
-                canal = interaction.guild.get_channel(canal_id)
-                if canal and isinstance(canal, discord.TextChannel):
-                    embed = criar_embed_mensagem(self.titulo, self.conteudo)
-                    await canal.send(embed=embed)
-                    sucesso += 1
-                else:
-                    falhas += 1
-            except:
-                falhas += 1
-        
-        await interaction.followup.send(
-            f"✅ Mensagem enviada para {sucesso} canal(is)! "
-            f"{f'({falhas} falhas)' if falhas > 0 else ''}",
-            ephemeral=True
-        )
-    
-    @discord.ui.button(label="❌ Cancelar", style=discord.ButtonStyle.danger, emoji="❌")
-    async def cancelar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """Cancela o envio"""
-        await interaction.response.edit_message(
-            content="❌ Envio cancelado!",
-            view=None
-        )
-
-# ========== COMANDOS DO BOT ==========
-
-@bot.command(name="painel")
-@commands.has_permissions(administrator=True)
-async def comando_painel(ctx):
-    """Recarrega o painel de mensagens"""
-    await ctx.message.delete()
-    await configurar_painel(ctx.guild)
-    await ctx.send("✅ Painel recarregado!", delete_after=5)
-
-@bot.command(name="enviar")
-@commands.has_permissions(manage_messages=True)
-async def comando_enviar(ctx, canal: discord.TextChannel, *, mensagem: str):
-    """Envia uma mensagem para um canal específico"""
-    try:
-        embed = discord.Embed(
-            title=f"Mensagem de {ctx.author.name}",
-            description=mensagem,
-            color=discord.Color.blue(),
-            timestamp=datetime.now()
-        )
-        embed.set_footer(text=f"Enviado por {ctx.author}")
-        
-        await canal.send(embed=embed)
-        await ctx.send(f"✅ Mensagem enviada para {canal.mention}!")
-    except Exception as e:
-        await ctx.send(f"❌ Erro ao enviar mensagem: {e}")
-
-@bot.command(name="template")
-@commands.has_permissions(manage_messages=True)
-async def comando_template(ctx, tipo: str, *, conteudo: str):
-    """Usa um template para enviar mensagem"""
-    tipos_validos = {
-        "anuncio": ("📢 ANÚNCIO IMPORTANTE", "#FF0000"),
-        "evento": ("🎉 EVENTO", "#00FF00"),
-        "aviso": ("⚠️ AVISO", "#FFA500")
-    }
-    
-    if tipo.lower() not in tipos_validos:
-        await ctx.send(f"❌ Tipo inválido! Use: {', '.join(tipos_validos.keys())}")
-        return
-    
-    titulo, cor = tipos_validos[tipo.lower()]
-    
-    # Criar view para selecionar canais
-    class ViewTemplate(discord.ui.View):
-        @discord.ui.select(
-            placeholder="📂 Selecione os canais...",
-            min_values=1,
-            max_values=5,
-            options=[
-                discord.SelectOption(label="#geral", value="geral"),
-                discord.SelectOption(label="#anúncios", value="anuncios"),
-                discord.SelectOption(label="#eventos", value="eventos")
-            ]
-        )
-        async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
-            await interaction.response.defer()
-            
-            # Enviar para os canais selecionados
-            for opcao in select.values:
-                if opcao == "geral":
-                    canal = discord.utils.get(ctx.guild.text_channels, name="geral")
-                elif opcao == "anuncios":
-                    canal = discord.utils.get(ctx.guild.text_channels, name="anúncios")
-                elif opcao == "eventos":
-                    canal = discord.utils.get(ctx.guild.text_channels, name="eventos")
-                else:
-                    continue
-                
-                if canal:
-                    embed = discord.Embed(
-                        title=titulo,
-                        description=conteudo,
-                        color=discord.Color.from_str(cor),
-                        timestamp=datetime.now()
-                    )
-                    embed.set_footer(text="📢 Sistema de Templates")
-                    await canal.send(embed=embed)
-            
-            await interaction.followup.send(f"✅ Template enviado para {len(select.values)} canal(is)!", ephemeral=True)
-    
-    embed = discord.Embed(
-        title=titulo,
-        description=conteudo,
-        color=discord.Color.from_str(cor)
-    )
-    
-    await ctx.send("👁️ **Pré-visualização do template:**", embed=embed)
-    await ctx.send("**📂 Selecione os canais para enviar:**", view=ViewTemplate())
-
-@bot.command(name="ping")
-async def comando_ping(ctx):
-    """Verifica se o bot está online"""
-    latency = round(bot.latency * 1000)
-    
-    embed = discord.Embed(
-        title="🏓 Pong!",
-        description=f"Bot online e funcionando! 🎯",
-        color=discord.Color.green()
-    )
-    embed.add_field(name="📡 Ping", value=f"{latency}ms", inline=True)
-    embed.add_field(name="🏠 Servidores", value=f"{len(bot.guilds)}", inline=True)
-    embed.add_field(name="👥 Membros", value=f"{sum(g.member_count for g in bot.guilds)}", inline=True)
-    embed.set_footer(text="Bot Simples • Online 24/7")
     
     await ctx.send(embed=embed)
 
-@bot.command(name="status")
-async def comando_status(ctx):
+@bot.command()
+async def status(ctx):
     """Mostra status completo do bot"""
     embed = discord.Embed(
         title="🤖 Status do Bot",
-        description="Informações do sistema",
-        color=discord.Color.blue()
+        description=f"Informações de {bot.user.name}",
+        color=discord.Color.green()
     )
     
-    embed.add_field(name="Nome", value=bot.user.name, inline=True)
-    embed.add_field(name="ID", value=bot.user.id, inline=True)
-    embed.add_field(name="Ping", value=f"{round(bot.latency * 1000)}ms", inline=True)
-    embed.add_field(name="Servidores", value=len(bot.guilds), inline=True)
-    embed.add_field(name="Membros totais", value=f"{sum(g.member_count for g in bot.guilds)}", inline=True)
-    embed.add_field(name="Online desde", value=bot.user.created_at.strftime('%d/%m/%Y'), inline=True)
+    embed.add_field(name="🏷️ Nome", value=bot.user.name, inline=True)
+    embed.add_field(name="🆔 ID", value=bot.user.id, inline=True)
+    embed.add_field(name="📡 Ping", value=f"{round(bot.latency * 1000)}ms", inline=True)
+    embed.add_field(name="🏠 Servidores", value=len(bot.guilds), inline=True)
     
-    # Verificar permissões
-    perms = ctx.guild.me.guild_permissions
-    tem_permissao = "✅ SIM" if perms.manage_roles else "❌ NÃO"
-    embed.add_field(name="Pode gerenciar cargos?", value=tem_permissao, inline=True)
+    # Contar membros totais
+    total_members = sum(len(g.members) for g in bot.guilds)
+    embed.add_field(name="👤 Membros Totais", value=total_members, inline=True)
     
-    # Cargo visitante
-    cargo_visitante = discord.utils.get(ctx.guild.roles, name="𝗩𝗶𝘀𝗶𝘁𝗮𝗻𝘁𝗲")
-    if cargo_visitante:
-        embed.add_field(
-            name="Cargo visitante",
-            value=f"{cargo_visitante.mention} está configurado",
-            inline=False
+    # Módulos carregados
+    loaded_cogs = list(bot.cogs.keys())
+    embed.add_field(
+        name="📦 Módulos Ativos", 
+        value="\n".join([f"• {cog}" for cog in loaded_cogs]) if loaded_cogs else "Nenhum módulo carregado",
+        inline=False
+    )
+    
+    # Uptime (aproximado)
+    embed.set_footer(text="Sistema Hospício APP • Online 24/7")
+    
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def setup_all(ctx):
+    """Configura todos os sistemas de uma vez (apenas ADM)"""
+    if not ctx.author.guild_permissions.administrator:
+        return await ctx.send("❌ Apenas administradores podem usar este comando!")
+    
+    await ctx.send("🔄 Configurando todos os sistemas...")
+    
+    # 1. Setup Cargos
+    try:
+        cargos_cog = bot.get_cog("CargosCog")
+        if cargos_cog:
+            await ctx.invoke(bot.get_command("setup_cargos"))
+            await asyncio.sleep(1)
+    except:
+        pass
+    
+    # 2. Setup Set
+    try:
+        sets_cog = bot.get_cog("SetsCog")
+        if sets_cog:
+            await ctx.invoke(bot.get_command("setup_set"))
+            await asyncio.sleep(1)
+    except:
+        pass
+    
+    # 3. Setup Tickets
+    try:
+        tickets_cog = bot.get_cog("TicketsCog")
+        if tickets_cog:
+            await ctx.invoke(bot.get_command("setup_tickets"))
+            await asyncio.sleep(1)
+    except:
+        pass
+    
+    await ctx.send("✅ Todos os sistemas foram configurados!")
+
+@bot.command()
+async def test_entrada(ctx):
+    """Testa o sistema de boas-vindas (apenas ADM)"""
+    if not ctx.author.guild_permissions.administrator:
+        return await ctx.send("❌ Apenas administradores podem usar este comando!")
+    
+    # Simular um membro entrando
+    await ctx.send("🔧 Testando sistema de boas-vindas...")
+    
+    # Buscar canal de entrada
+    canal_entrada = discord.utils.get(ctx.guild.text_channels, name="🚪entrada")
+    
+    if not canal_entrada:
+        canal_entrada = discord.utils.get(ctx.guild.text_channels, name="entrada")
+    
+    if canal_entrada:
+        await ctx.send(f"✅ Canal de entrada encontrado: {canal_entrada.mention}")
+        
+        # Testar mensagem
+        embed = discord.Embed(
+            title="👋 Teste de Boas-vindas",
+            description="Esta é uma mensagem de teste do sistema de boas-vindas!",
+            color=discord.Color.blue()
         )
+        embed.add_field(name="Canal", value=canal_entrada.mention, inline=True)
+        embed.add_field(name="Status", value="✅ Funcionando", inline=True)
+        
+        await canal_entrada.send(embed=embed)
+        await ctx.send("✅ Mensagem de teste enviada com sucesso!")
     else:
-        embed.add_field(
-            name="Cargo visitante",
-            value="❌ Não encontrado (será criado automaticamente)",
-            inline=False
-        )
-    
-    embed.set_footer(text="Use !ping para testar • !ajuda para ajuda completa")
-    await ctx.send(embed=embed)
+        await ctx.send("❌ Canal '🚪entrada' não encontrado! Canais disponíveis:")
+        for channel in ctx.guild.text_channels:
+            await ctx.send(f"• #{channel.name}")
 
-@bot.command(name="ajuda")
-async def comando_ajuda(ctx):
-    """Mostra ajuda completa"""
-    embed = discord.Embed(
-        title="📚 **Ajuda - Bot Simples**",
-        description="Sistema básico de cargo automático + envio de mensagens",
-        color=discord.Color.purple()
-    )
+# ==================== INICIALIZAÇÃO ====================
+if __name__ == '__main__':
+    print("🚀 Iniciando bot Discord...")
+    print("=" * 50)
     
-    embed.add_field(
-        name="🎯 **Funcionalidades**",
-        value=(
-            "1. **Cargo Automático** - Atribui '𝗩𝗶𝘀𝗶𝘁𝗮𝗻𝘁𝗲' automaticamente\n"
-            "2. **Painel de Mensagens** - Interface no canal `𝗪𝗮𝘃𝗲𝗫-𝗣𝗡𝗘𝗟_𝗠𝗦𝗚`\n"
-            "3. **Envio Simples** - Botões para enviar mensagens\n"
-            "4. **Templates** - Modelos prontos para usar"
-        ),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="📋 **Comandos**",
-        value=(
-            "• `!ping` - Status do bot\n"
-            "• `!status` - Status completo\n"
-            "• `!painel` - Recarrega painel (admin)\n"
-            "• `!enviar #canal mensagem` - Envia mensagem\n"
-            "• `!template <tipo> <conteudo>` - Usa template\n"
-            "• `!ajuda` - Esta mensagem"
-        ),
-        inline=False
-    )
-    
-    embed.add_field(
-        name="⚙️ **Configuração**",
-        value=(
-            "1. Crie o canal `𝗪𝗮𝘃𝗲𝗫-𝗣𝗡𝗘𝗟_𝗠𝗦𝗚`\n"
-            "2. Use `!painel` para configurar\n"
-            "3. Dê permissão 'Gerenciar Cargos' ao bot"
-        ),
-        inline=False
-    )
-    
-    embed.set_footer(text="Bot Online 24/7 • Hospedado no Render")
-    await ctx.send(embed=embed)
-
-# ========== EVENTO QUANDO BOT É ADICIONADO ==========
-
-@bot.event
-async def on_guild_join(guild):
-    """Quando o bot é adicionado a um novo servidor"""
-    print(f"\n{'='*50}")
-    print(f"🏠 NOVO SERVIDOR: {guild.name}")
-    print(f"{'='*50}")
-    
-    # Configurar painel automaticamente
-    await configurar_painel(guild)
-    
-    # Tentar enviar mensagem de boas-vindas
-    try:
-        canal_geral = discord.utils.get(guild.text_channels, name="geral")
-        if not canal_geral:
-            for canal in guild.text_channels:
-                if canal.permissions_for(guild.me).send_messages:
-                    canal_geral = canal
-                    break
-        
-        if canal_geral:
-            embed = discord.Embed(
-                title="🤖 Bot Adicionado com Sucesso!",
-                description=(
-                    "Olá! Fui adicionado ao servidor com **duas funções principais:**\n\n"
-                    "🎯 **1. Cargo Automático**\n"
-                    "• Atribui `𝗩𝗶𝘀𝗶𝘁𝗮𝗻𝘁𝗲` a novos membros\n"
-                    "• Cria o cargo automaticamente se não existir\n\n"
-                    "📢 **2. Painel de Mensagens**\n"
-                    "• Sistema básico no canal `𝗪𝗮𝘃𝗲𝗫-𝗣𝗡𝗘𝗟_𝗠𝗦𝗚`\n"
-                    "• Envie mensagens facilmente\n"
-                    "• Use templates prontos\n\n"
-                    "⚡ **Comandos rápidos:**\n"
-                    "• `!painel` - Configura o painel\n"
-                    "• `!ajuda` - Ajuda completa"
-                ),
-                color=discord.Color.green()
-            )
-            
-            await canal_geral.send(embed=embed)
-    except:
-        pass
-
-# ========== FUNÇÃO PARA ATUALIZAR SELECT DE CANAIS ==========
-
-@bot.event
-async def on_interaction(interaction: discord.Interaction):
-    """Intercepta interações para atualizar selects dinamicamente"""
-    if interaction.type == discord.InteractionType.component:
-        # Se for um select de canais, atualizar opções
-        if hasattr(interaction.data, 'custom_id') and 'select_canais' in interaction.data.get('custom_id', ''):
-            await atualizar_opcoes_canais(interaction)
-
-async def atualizar_opcoes_canais(interaction: discord.Interaction):
-    """Atualiza as opções do select com os canais do servidor"""
-    try:
-        # Obter todos os canais de texto
-        canais = [c for c in interaction.guild.text_channels if c.permissions_for(interaction.guild.me).send_messages]
-        
-        # Limitar a 25 canais (limite do Discord)
-        canais = canais[:25]
-        
-        # Criar opções
-        options = []
-        for canal in canais:
-            options.append(
-                discord.SelectOption(
-                    label=f"#{canal.name}"[:100],
-                    value=str(canal.id),
-                    description=f"Enviar para #{canal.name}"[:100]
-                )
-            )
-        
-        # Atualizar a view
-        view = discord.ui.View()
-        select = discord.ui.Select(
-            placeholder="📂 Selecione os canais...",
-            min_values=1,
-            max_values=len(options),
-            options=options,
-            custom_id="select_canais"
-        )
-        select.callback = lambda i, s: handle_canal_selection(i, s)
-        view.add_item(select)
-        
-        await interaction.response.edit_message(view=view)
-    except:
-        pass
-
-async def handle_canal_selection(interaction: discord.Interaction, select: discord.ui.Select):
-    """Lida com a seleção de canais"""
-    await interaction.response.defer()
-
-# ========== INICIAR BOT ==========
-
-if __name__ == "__main__":
-    # OBTER TOKEN DO BOT
-    TOKEN = os.getenv("DISCORD_TOKEN")
-    
-    if not TOKEN:
-        try:
-            with open(".env", "r") as f:
-                for line in f:
-                    if line.startswith("DISCORD_TOKEN="):
-                        TOKEN = line.split("=")[1].strip()
-                        break
-        except:
-            pass
-    
+    # Verificar token
+    TOKEN = os.getenv('DISCORD_TOKEN')
     if not TOKEN:
         print("❌ ERRO: DISCORD_TOKEN não encontrado!")
-        print("\n💡 COMO CONFIGURAR NO RENDER:")
-        print("1. No painel do Render, vá em Environment")
-        print("2. Adicione a variável:")
-        print("   Key: DISCORD_TOKEN")
-        print("   Value: seu_token_do_bot")
-        print("\n🔗 Obtenha seu token em: https://discord.com/developers/applications")
+        print("💡 Configure em: Render Dashboard → Environment → Add Variable")
+        print("💡 Ou crie um arquivo .env com: DISCORD_TOKEN=seu_token")
         sys.exit(1)
     
     print("✅ Token encontrado")
-    print("🔗 Conectando ao Discord...")
-    print("=" * 50)
+    print(f"🤖 Nome do Bot: {bot.user if hasattr(bot, 'user') else 'Carregando...'}")
     
+    # Iniciar keep-alive
+    keep_alive()
+    
+    # Carregar SEUS módulos antes de iniciar
+    async def startup():
+        success = await load_cogs()
+        if not success:
+            print("⚠️  Alguns módulos não foram carregados, continuando...")
+    
+    # Executar carregamento
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(startup())
+    
+    # Iniciar bot
     try:
+        print("🔗 Conectando ao Discord...")
         bot.run(TOKEN)
     except discord.LoginFailure:
         print("❌ ERRO: Token inválido ou expirado!")
+        print("💡 Gere um novo token em: https://discord.com/developers/applications")
     except KeyboardInterrupt:
-        print("\n👋 Bot encerrado manualmente")
+        print("\n👋 Bot encerrado pelo usuário")
     except Exception as e:
-        print(f"❌ ERRO: {type(e).__name__}: {e}")
+        print(f"❌ Erro inesperado: {type(e).__name__}: {e}")
