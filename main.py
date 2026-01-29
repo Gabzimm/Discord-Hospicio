@@ -7,24 +7,49 @@ import sys
 import asyncio
 
 # ==================== KEEP-ALIVE SERVER ====================
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "✅ Bot Discord está online! Acesse /health para status."
-
-@app.route('/health')
-def health():
-    return "🟢 ONLINE", 200
-
-def run():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-    print("🌐 Servidor keep-alive iniciado na porta 8080")
+# ========== SERVIDOR WEB PARA UPTIMEROBOT ==========
+try:
+    from flask import Flask
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def home():
+        status = "🟢 ONLINE" if bot.is_ready() else "🟡 CONECTANDO"
+        return f"""
+        <html>
+        <head><title>🤖 Bot Simples</title>
+        <meta charset="UTF-8">
+        <style>
+            body {{font-family: Arial; text-align: center; padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;}}
+            .container {{background: rgba(0,0,0,0.8); padding: 30px; border-radius: 15px; max-width: 600px; margin: auto;}}
+            .status {{background: #28a745; padding: 15px; border-radius: 10px; margin: 20px 0;}}
+        </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🤖 Bot Simples</h1>
+                <div class="status">{status}</div>
+                <p>Cargo Automático + Envio de Mensagens</p>
+                <p><small>{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</small></p>
+            </div>
+        </body>
+        </html>
+        """
+    
+    @app.route('/health')
+    def health():
+        return "OK", 200
+    
+    def run_web_server():
+        app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
+    
+    web_thread = Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+    print("✅ Servidor web iniciado na porta 8080")
+    
+except ImportError:
+    print("⚠️ Flask não encontrado. Servidor web não será iniciado.")
 
 # ==================== BOT DISCORD ====================
 intents = discord.Intents.default()
