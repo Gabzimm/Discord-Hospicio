@@ -151,7 +151,7 @@ class CargoSelectView(ui.View):
         self.member = member
         self.action = action  # "add" ou "remove"
         
-        # Opções de cargo (COM Elite ADICIONADO)
+        # Opções de cargo SEM EMOJIS (para evitar erro)
         options = []
         cargos_disponiveis = [
             ("00", "Dono"),
@@ -160,7 +160,7 @@ class CargoSelectView(ui.View):
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "Gerente"),
             ("𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "Sublíder"),
             ("𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Recrutador"),
-            ("𝐄𝐥𝐢𝐭𝐞", "Elite"),  # ADICIONADO
+            ("𝐄𝐥𝐢𝐭𝐞", "Elite"),
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "Gerente de Família"),
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "Gerente de Recrutamento"),
             ("𝐌𝐨𝐝𝐞𝐫", "Moderador"),
@@ -174,7 +174,7 @@ class CargoSelectView(ui.View):
                 discord.SelectOption(
                     label=cargo_nome,
                     description=desc,
-                    emoji=desc.split()[0]
+                    # Sem emoji para evitar erro
                 )
             )
         
