@@ -12,7 +12,7 @@ NICKNAME_CONFIG = {
     "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫": "SLD | {name} - {id}",
     "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫": "REC | {name} - {id}",
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞": "GER ELITE | {name} - {id}",
-    "𝐄𝐥𝐢𝐭𝐞": "ELITE | {nick} - {id}",
+    "𝐄𝐥𝐢𝐭𝐞": "ELITE | {name} - {id}",  # ADICIONADO
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨": "GER REC | {name} - {id}",
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫": "GER FMR | {name}",
     "𝐌𝐨𝐝𝐞𝐫": "MOD | {name}",
@@ -24,16 +24,40 @@ NICKNAME_CONFIG = {
 
 ORDEM_PRIORIDADE = [
     "00", "𝐀𝐃𝐌", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫",
-    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞", "𝐄𝐥𝐢𝐭𝐞", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨",
-    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "𝐌𝐨𝐝𝐞𝐫", "𝐌𝐞𝐦𝐛𝐫𝐨",
-    "𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨", "𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞", "𝐄𝐥𝐢𝐭𝐞",  # ADICIONADO Elite aqui
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", 
+    "𝐌𝐨𝐝𝐞𝐫", "𝐌𝐞𝐦𝐛𝐫𝐨", "𝐀𝐯𝐢𝐚̃𝐨𝐳𝐢𝐧𝐡𝐨", "𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞"
 ]
 
-STAFF_ROLES = ["00", "𝐀𝐃𝐌", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", 
-               "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", 
-               "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"]
+# Cargos de staff (Elite NÃO está aqui - como solicitado)
+STAFF_ROLES = [
+    "00", "𝐀𝐃𝐌", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", 
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞", "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", 
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "𝐌𝐨𝐝𝐞𝐫"
+]
 
-# ========== FUNÇÕES SIMPLES ==========
+# ========== FUNÇÕES AUXILIARES ==========
+def buscar_usuario_por_fivem_id(guild: discord.Guild, fivem_id: str) -> discord.Member:
+    """Busca usuário pelo ID do FiveM no nickname"""
+    for member in guild.members:
+        if member.nick:
+            # Padrão 1: " - 26046" no final
+            if member.nick.endswith(f" - {fivem_id}"):
+                return member
+            
+            # Padrão 2: "-26046" no final
+            if member.nick.endswith(f"-{fivem_id}"):
+                return member
+            
+            # Padrão 3: contém "26046" em qualquer lugar
+            if fivem_id in member.nick:
+                # Verificar se são os últimos números
+                match = re.search(rf'(\D|^){fivem_id}(\D|$)', member.nick)
+                if match:
+                    return member
+    
+    return None
+
 def extrair_parte_nickname(nickname: str):
     """Extrai a primeira parte do nickname (antes do ' - ')"""
     if not nickname:
@@ -127,7 +151,7 @@ class CargoSelectView(ui.View):
         self.member = member
         self.action = action  # "add" ou "remove"
         
-        # Opções de cargo
+        # Opções de cargo (COM Elite ADICIONADO)
         options = []
         cargos_disponiveis = [
             ("00", "Dono"),
@@ -135,8 +159,8 @@ class CargoSelectView(ui.View):
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞", "Gerente Elite"),
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞", "Gerente"),
             ("𝐒𝐮𝐛𝐥𝐢́𝐝𝐞𝐫", "Sublíder"),
-            ("𝐄𝐥𝐢𝐭𝐞", "The bests"),
             ("𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐝𝐨𝐫", "Recrutador"),
+            ("𝐄𝐥𝐢𝐭𝐞", "Elite"),  # ADICIONADO
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", "Gerente de Família"),
             ("𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", "Gerente de Recrutamento"),
             ("𝐌𝐨𝐝𝐞𝐫", "Moderador"),
@@ -207,8 +231,8 @@ class SimpleCargoModal(ui.Modal, title="🎯 Gerenciar Cargo"):
     """Modal simples para gerenciar cargo"""
     
     usuario_input = ui.TextInput(
-        label="Usuário (@nome ou ID):",
-        placeholder="Mencione o usuário ou cole o ID",
+        label="Usuário (@nome ou número do FiveM):",
+        placeholder="Ex: @João ou 26046",
         required=True
     )
     
@@ -231,42 +255,85 @@ class SimpleCargoModal(ui.Modal, title="🎯 Gerenciar Cargo"):
         input_text = self.usuario_input.value
         
         try:
-            # Se for menção
+            # 1. Se for menção (@usuário)
             if "<@" in input_text:
                 user_id = input_text.replace("<@", "").replace(">", "").replace("!", "")
                 member = interaction.guild.get_member(int(user_id))
             
-            # Se for ID numérico
+            # 2. Se for apenas números (ID do FiveM)
             elif input_text.isdigit():
-                member = interaction.guild.get_member(int(input_text))
+                # Primeiro, buscar pelo ID do FiveM no nickname
+                member = buscar_usuario_por_fivem_id(interaction.guild, input_text)
+                
+                # Se não encontrou, buscar pelo ID do Discord
+                if not member:
+                    try:
+                        member = interaction.guild.get_member(int(input_text))
+                    except:
+                        pass
             
-            # Se for nome
+            # 3. Se for texto (nome)
             else:
+                # Buscar por nome no nickname primeiro
                 for guild_member in interaction.guild.members:
-                    if input_text.lower() in guild_member.name.lower():
+                    if guild_member.nick and input_text.lower() in guild_member.nick.lower():
                         member = guild_member
                         break
+                
+                # Se não encontrou no nickname, buscar no nome
+                if not member:
+                    for guild_member in interaction.guild.members:
+                        if input_text.lower() in guild_member.name.lower():
+                            member = guild_member
+                            break
             
             if not member:
-                msg = await interaction.followup.send("❌ Usuário não encontrado!", ephemeral=True)
-                await asyncio.sleep(5)
+                # Mostrar mensagem mais útil
+                embed = discord.Embed(
+                    title="❌ Usuário não encontrado!",
+                    description=(
+                        f"Não encontrei nenhum usuário com: `{input_text}`\n\n"
+                        "**Formas de buscar:**\n"
+                        "1. **Menção**: `@João`\n"
+                        "2. **ID do FiveM**: `26046` (deve estar no nickname)\n"
+                        "3. **Nome**: `João` ou parte do nome\n\n"
+                        "**📌 Exemplo de nickname com ID:**\n"
+                        "`MEM | João - 26046`"
+                    ),
+                    color=discord.Color.red()
+                )
+                msg = await interaction.followup.send(embed=embed, ephemeral=True)
+                await asyncio.sleep(8)
                 await msg.delete()
                 return
             
             # Mostrar view para selecionar cargo
             view = CargoSelectView(member, self.action)
             
+            # Verificar se tem ID do FiveM no nickname
+            id_fivem = extrair_id_fivem(member.nick or member.name)
+            
             # Criar embed simples
             embed = discord.Embed(
                 title=f"{'➕ Adicionar' if self.action == 'add' else '➖ Remover'} Cargo",
-                description=f"Usuário: {member.mention}\nSelecione o cargo abaixo:",
+                description=(
+                    f"**Usuário:** {member.mention}\n"
+                    f"**Nickname atual:** `{member.nick or member.name}`\n"
+                    f"**ID FiveM:** `{id_fivem or 'Não encontrado'}`\n\n"
+                    f"Selecione o cargo abaixo:"
+                ),
                 color=discord.Color.blue() if self.action == "add" else discord.Color.red()
             )
             
             await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             
         except Exception as e:
-            msg = await interaction.followup.send(f"❌ Erro: {e}", ephemeral=True)
+            embed = discord.Embed(
+                title="❌ Erro!",
+                description=f"Ocorreu um erro: `{str(e)}`",
+                color=discord.Color.red()
+            )
+            msg = await interaction.followup.send(embed=embed, ephemeral=True)
             await asyncio.sleep(5)
             await msg.delete()
 
@@ -325,7 +392,7 @@ class CargosCog(commands.Cog):
             description=(
                 "**Como funciona:**\n"
                 "1. Clique em Add ou Rem\n"
-                "2. Digite @usuário ou ID\n"
+                "2. Digite @usuário ou ID do FiveM\n"
                 "3. Selecione o cargo\n"
                 "✅ Nickname atualiza automaticamente\n\n"
                 "**📌 Importante:**\n"
@@ -336,19 +403,21 @@ class CargosCog(commands.Cog):
             color=discord.Color.blue()
         )
         
+        # Adicionar exemplo com Elite
         embed.add_field(
             name="🎯 Exemplos de Nickname",
             value=(
                 "• MEM | João - 123456\n"
                 "• GER | Maria - 789012\n"
-                "• AV | Pedro - 345678"
+                "• ELITE | Pedro - 345678\n"  # ADICIONADO Elite
+                "• AV | Ana - 901234"
             ),
             inline=False
         )
         
         embed.add_field(
             name="👑 Staff Permitido",
-            value="\n".join(STAFF_ROLES[:5]) + "\n...",
+            value="\n".join(STAFF_ROLES[:6]) + "\n...",
             inline=False
         )
         
