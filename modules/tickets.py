@@ -15,8 +15,9 @@ STAFF_ROLES = [
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", 
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", 
     "𝐌𝐨𝐝𝐞𝐫"
+    "𝐀𝐃𝐌"
+    "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞"
 ]
-
 # ========== CLASSES PRINCIPAIS ==========
 
 class TicketFinalizadoView(ui.View):
