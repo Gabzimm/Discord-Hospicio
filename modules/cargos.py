@@ -447,3 +447,6 @@ class CargosCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(CargosCog(bot))
+    # ===== NOVO: Registrar view persistente =====
+    bot.add_view(CleanCargoView())
+    print("✅ Sistema de Cargos configurado com views persistentes!")
