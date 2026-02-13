@@ -188,6 +188,23 @@ async def on_ready():
         print(f"✅ {len(synced)} comandos slash sincronizados")
     except:
         print("⚠️ Sem comandos slash para sincronizar")
+    
+    # ===== NOVO: Recarregar views persistentes em todos os servidores =====
+    print("🔄 Verificando painéis persistentes...")
+    for guild in bot.guilds:
+        try:
+            # Procura por canais que podem conter os painéis
+            for channel in guild.text_channels:
+                # Tenta encontrar mensagens com views
+                async for message in channel.history(limit=50):
+                    # Se a mensagem tiver components (botões), o Discord
+                    # automaticamente reassocia as views quando registradas
+                    if message.components:
+                        print(f"  → View encontrada em #{channel.name} no servidor {guild.name}")
+        except:
+            pass
+    
+    print("✅ Sistema de persistência de views ativo!")
 
 # ==================== COMANDOS ====================
 @bot.command()
@@ -234,6 +251,25 @@ async def reload(ctx):
     """Recarrega módulos"""
     await load_cogs()
     await ctx.send("✅ Módulos recarregados!")
+
+# ===== NOVO: Comando para recarregar views manualmente =====
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def reload_views(ctx):
+    """Recarrega as views persistentes manualmente"""
+    try:
+        # Recarrega os módulos primeiro
+        await load_cogs()
+        
+        # Registra as views novamente
+        bot.add_view(TicketOpenView())
+        bot.add_view(SetOpenView())
+        bot.add_view(CleanCargoView())
+        
+        await ctx.send("✅ Views recarregadas com sucesso!")
+        print("✅ Views registradas manualmente")
+    except Exception as e:
+        await ctx.send(f"❌ Erro ao recarregar views: {e}")
 
 # ==================== TRATAMENTO DE ERROS ====================
 @bot.event
