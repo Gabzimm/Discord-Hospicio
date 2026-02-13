@@ -14,8 +14,8 @@ STAFF_ROLES = [
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞",
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐝𝐞 𝐅𝐚𝐦𝐫", 
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐑𝐞𝐜𝐫𝐮𝐭𝐚𝐦𝐞𝐧𝐭𝐨", 
-    "𝐌𝐨𝐝𝐞𝐫"
-    "𝐀𝐃𝐌"
+    "𝐌𝐨𝐝𝐞𝐫",
+    "𝐀𝐃𝐌",
     "𝐆𝐞𝐫𝐞𝐧𝐭𝐞 𝐄𝐥𝐢𝐭𝐞"
 ]
 
@@ -462,4 +462,6 @@ class SetsCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(SetsCog(bot))
-    print("✅ Sistema de Sets configurado!")
+    # ===== NOVO: Registrar view persistente =====
+    bot.add_view(SetOpenView())
+    print("✅ Sistema de Sets configurado com views persistentes!")
