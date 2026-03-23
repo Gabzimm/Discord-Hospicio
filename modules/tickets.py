@@ -414,7 +414,7 @@ class TicketsCog(commands.Cog):
             color=discord.Color.purple()
         )
         
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1462150327070359707/1462151759337361654/ChatGPT_Image_17_de_jan._de_2026_18_28_54.png?ex=696d2670&is=696bd4f0&hm=10fbb4366a6ba683e0b93a90e2cc7e2b67748dcbdacee8fde06a768050748bd5")
+        embed.set_image(url="https://cdn.discordapp.com/attachments/1462123097627820348/1485738959760920696/07F15636-DD7A-40CD-8257-703F7254123F.png?ex=69c2f5bb&is=69c1a43b&hm=bbb96bad3b3763b83a29940c2a16508b7e2c7235c0c2c3ad7b6c067df78fd9ca")
         embed.set_footer(text="Hospital APP • Suporte 24h")
         
         view = TicketOpenView()
