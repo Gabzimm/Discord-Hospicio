@@ -116,14 +116,14 @@ async def on_member_join(member):
             print(f"⚠️ Cargo 𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞 não encontrado no servidor {member.guild.name}")
         
         # 2. ENVIAR MENSAGEM DE BOAS-VINDAS NO CANAL 🚪entrada
-        canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪| entrada")
+        canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪┃entrada")
         
         if canal_entrada:
             # Criar embed com a foto do usuário
             embed = discord.Embed(
                 description=(
                     f"## 👋 Bem-vindo(a), {member.mention}!\n"
-                    f"Seja muito bem-vindo(a) ao **ISRAEL** 💸🔫🇮🇱!\n\n"
+                    f"Seja muito bem-vindo(a) ao **KAMIKAZE** 💸🔫🇮🇱!\n\n"
                     f"**👤 Total de membros:** {member.guild.member_count}\n\n"
                     f"**💡 Para fazer seu set:**\n"
                     f"> 1. Vá para <#pedir-set> ou <#𝐏𝐞𝐝𝐢𝐫-𝐬𝐞𝐭!>\n"
@@ -139,12 +139,12 @@ async def on_member_join(member):
             embed.set_thumbnail(url=member.display_avatar.url)
             
             # Adicionar imagem opcional (a que você mencionou)
-            embed.set_image(url="https://cdn.discordapp.com/attachments/1462123097627820348/1485738959760920696/07F15636-DD7A-40CD-8257-703F7254123F.png")
+            embed.set_image(url="")
             
             embed.set_footer(text=f"ID: {member.id} | Entrou em {datetime.now().strftime('%d/%m/%Y %H:%M')}")
             
             await canal_entrada.send(embed=embed)
-            print(f"✅ Mensagem de boas-vindas enviada para {member.name} no canal 🚪| entrada")
+            print(f"✅ Mensagem de boas-vindas enviada para {member.name} no canal 🚪┃entrada")
         else:
             print(f"⚠️ Canal 🚪entrada não encontrado no servidor {member.guild.name}")
             
@@ -154,7 +154,7 @@ async def on_member_join(member):
                     embed = discord.Embed(
                         description=(
                             f"## 👋 Bem-vindo(a), {member.mention}!\n"
-                            f"Seja muito bem-vindo(a) ao **ISRAEL** 💸🔫🇮🇱!\n\n"
+                            f"Seja muito bem-vindo(a) ao **KAMIKAZE** 💸🔫🇮🇱!\n\n"
                             f"**👤 Total de membros:** {member.guild.member_count}\n\n"
                             f"**💡 Para fazer seu set:**\n"
                             f"> 1. Vá para <#pedir-set>\n"
@@ -179,7 +179,7 @@ async def on_member_join(member):
 async def help_command(ctx):
     """!help - Mostra todos os comandos"""
     embed = discord.Embed(
-        title="🤖 Comandos do Bot - ISRAEL",
+        title="🤖 Comandos do Bot - KAMIKAZE",
         description="Lista de todos os comandos disponíveis:",
         color=discord.Color.purple()
     )
@@ -215,7 +215,7 @@ async def help_command(ctx):
         inline=False
     )
     
-    embed.set_footer(text="ISRAEL • Use os comandos com responsabilidade")
+    embed.set_footer(text="KAMIKAZE • Use os comandos com responsabilidade")
     
     await ctx.send(embed=embed)
 
@@ -322,7 +322,6 @@ async def carregar_modulos():
     modulos = [
         'modules.cargos',
         'modules.sets',
-        'modules.tickets',
     ]
     
     for modulo in modulos:
