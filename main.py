@@ -116,7 +116,7 @@ async def on_member_join(member):
             print(f"⚠️ Cargo 𝐕𝐢𝐬𝐢𝐭𝐚𝐧𝐭𝐞 não encontrado no servidor {member.guild.name}")
         
         # 2. ENVIAR MENSAGEM DE BOAS-VINDAS NO CANAL 🚪entrada
-        canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪entrada")
+        canal_entrada = discord.utils.get(member.guild.text_channels, name="🚪| entrada")
         
         if canal_entrada:
             # Criar embed com a foto do usuário
@@ -144,7 +144,7 @@ async def on_member_join(member):
             embed.set_footer(text=f"ID: {member.id} | Entrou em {datetime.now().strftime('%d/%m/%Y %H:%M')}")
             
             await canal_entrada.send(embed=embed)
-            print(f"✅ Mensagem de boas-vindas enviada para {member.name} no canal 🚪entrada")
+            print(f"✅ Mensagem de boas-vindas enviada para {member.name} no canal 🚪| entrada")
         else:
             print(f"⚠️ Canal 🚪entrada não encontrado no servidor {member.guild.name}")
             
