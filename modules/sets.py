@@ -372,7 +372,7 @@ class SetsCog(commands.Cog):
             color=discord.Color.purple()
         )
         
-        embed.set_image(url="https://cdn.discordapp.com/attachments/1462123097627820348/1485738959760920696/07F15636-DD7A-40CD-8257-703F7254123F.png?ex=69c2f5bb&is=69c1a43b&hm=bbb96bad3b3763b83a29940c2a16508b7e2c7235c0c2c3ad7b6c067df78fd9ca")
+        embed.set_image(url="")
         embed.set_footer(text="Sistema automático • Remoção de cargo visitante")
         
         view = SetOpenView()
