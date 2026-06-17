@@ -320,6 +320,7 @@ async def carregar_modulos():
     print("="*60)
     
     modulos = [
+        'modules.adm_system',
         'modules.cargos',
         'modules.sets',
     ]
