@@ -214,6 +214,12 @@ async def help_command(ctx):
               "`!fixnick [@user]` - Corrige nickname do usuário",
         inline=False
     )
+
+    embed.add_field(
+        name="👑 Sistema de Adm",
+        value="`!adm` - Configurar painel de Adms (Para adcionar ou remover ADMs)",
+        inline=False
+    )
     
     embed.set_footer(text="KAMIKAZE • Use os comandos com responsabilidade")
     
